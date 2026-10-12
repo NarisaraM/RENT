@@ -235,11 +235,6 @@ tr.detail .scroll{max-height:420px;overflow:auto}
         <input type="radio" name="cargo" id="q-flexi" value="FLEXIBAG"><label for="q-flexi">FLEXIBAG</label>
       </div>
     </div>
-    <div class="field">
-      <label for="q-cgo">CGO TERM</label>
-      <select id="q-cgo"><option value="CY/CY">CY/CY</option><option value="CFS/CY">CFS/CY</option></select>
-      <small>BKK01 / BKK04 (PAT) + CFS/CY = free time 0 วัน</small>
-    </div>
     <div class="row2">
       <div class="field"><label for="q-in">วันตู้เข้า (Gate in)</label><input type="date" id="q-in"></div>
       <div class="field"><label for="q-etd">ETD เรือ</label><input type="date" id="q-etd"></div>
@@ -254,7 +249,7 @@ tr.detail .scroll{max-height:420px;overflow:auto}
     <article class="panel ticket" aria-live="polite">
       <div class="ticket-top">
         <div style="display:grid;gap:6px">
-          <span class="label">ค่า Storage Terminal (HAL จ่าย)</span>
+          <span class="label">ค่า Storage ที่เก็บลูกค้า</span>
           <div class="big" id="r-total">0<small>THB</small></div>
           <span class="total-note" id="r-note"></span>
         </div>
@@ -262,18 +257,11 @@ tr.detail .scroll{max-height:420px;overflow:auto}
       </div>
       <div class="timeline">
         <div><span class="label">อยู่ใน terminal</span><span class="v" id="r-stay">–</span></div>
-        <div><span class="label">Free time</span><span class="v" id="r-ft">–</span></div>
+        <div><span class="label">Free time ลูกค้า</span><span class="v" id="r-ft">–</span></div>
         <div><span class="label">วันคิดเงิน</span><span class="v hot" id="r-days">–</span></div>
         <div><span class="label">ฟรีถึงวันที่</span><span class="v" id="r-freeuntil" style="font-size:16px">–</span></div>
       </div>
       <table class="brk"><tbody id="r-brk"></tbody></table>
-    </article>
-
-    <article class="panel cust">
-      <span class="label">ฝั่งลูกค้า</span>
-      <div class="cust-grid">
-        <div><span class="total-note">Free time ลูกค้า</span><span class="v" id="c-ft">–</span></div>
-      </div>
     </article>
 
     <article class="panel strip">
@@ -314,13 +302,13 @@ tr.detail .scroll{max-height:420px;overflow:auto}
 <section id="view-tariff" hidden>
   <div class="tariff" id="t-cards"></div>
   <div class="panel notes">
-    <strong>หลักการคำนวณ (ตามชีท CS)</strong>
+    <strong>หลักการคำนวณ (ตามชีท Charge ใน COST-RENT.xlsx)</strong>
     <ul>
       <li>วันอยู่ใน terminal = ETD − วันตู้เข้า + 1</li>
-      <li>Free time terminal: DG 1 วัน · LCH ทุก terminal = 7 วัน · BKK02 = 5 วัน · BKK01/04 = 3 วัน · <b>BKK01/04 ที่ CGO TERM เป็น CFS/CY = 0 วัน</b></li>
-      <li>ถ้ามี Special F/T (TML) จะใช้แทน free time ปกติ</li>
-      <li>ค่า storage = ยอดสะสมของขั้น + (วันคิดเงิน − วันเริ่มขั้น) × อัตราต่อวัน · BKK02 คิดอัตราเดียว</li>
-      <li>Free time ลูกค้า: GP 5 วัน · DG/RF 3 วัน · +1 วัน ถ้า BKK + RF + KTS · +1 วัน ถ้า KHS</li>
+      <li>Free time ลูกค้า: GP/OOG/TK/FLEXIBAG 5 วัน · DG/RF 3 วัน · ถ้ากรอกช่อง Free Time จะใช้ค่าที่กรอกแทน</li>
+      <li>วันคิดเงิน = วันอยู่ใน terminal − free time</li>
+      <li>ค่า storage = รวมอัตราต่อวันของแต่ละวันคิดเงิน ตามช่วงวันที่ 1–4, 5–8 และ 9 ขึ้นไป</li>
+      <li>ตู้ RF บวก Electric charge = วันคิดเงิน × อัตราต่อวัน</li>
     </ul>
   </div>
 </section>
@@ -377,6 +365,26 @@ const CFS_ZERO_FT_LOCS = ["BKK01","BKK04"];   // PAT: CGO TERM CFS/CY (stuffing 
 const isCfsCy = cgo => String(cgo??"").replace(/\s/g,"").toUpperCase()==="CFS/CY";
 const ftTerminal = (loc,dg,cgo) => (CFS_ZERO_FT_LOCS.includes(loc)&&isCfsCy(cgo)) ? 0 : dg ? 1 : (TERMINAL_FT[loc] ?? 3);
 const custFt = (loc,dg,rf,svc) => (dg||rf?3:5) + ((loc||"").startsWith("BKK")&&rf&&svc==="KTS"?1:0) + (svc==="KHS"?1:0);
+
+/* ------------------------------------------------------------------ ค่าฝั่งลูกค้า (ชีท Charge ใน COST-RENT.xlsx) */
+// ตาราง Customer: [วันคิดเงินเริ่ม, อัตราต่อวัน] · GP/RF/OOG/TK/FLEXIBAG ใช้อัตราเดียวกัน, DG แยก
+const CUST_RATES = {
+  "GP|20'":[[1,375],[5,750],[9,1500]],  "GP|40'":[[1,750],[5,1500],[9,3000]],
+  "DG|20'":[[1,900],[5,1800],[9,3600]], "DG|40'":[[1,1800],[5,3600],[9,7200]],
+};
+const ELECTRIC_RF = {"20'":1000,"40'":1200};   // COST ELECTRIC CHARGE ต่อวันคิดเงิน เฉพาะตู้ RF
+const custKey = (cargo,size) => `${cargo==="DG"?"DG":"GP"}|${size}`;
+const custFtOf = cargo => (cargo==="DG"||cargo==="RF") ? 3 : 5;
+function custBreakdown(key, days){
+  const ts=CUST_RATES[key], out=[];
+  ts.forEach((t,i)=>{
+    const end = i+1<ts.length ? ts[i+1][0]-1 : Infinity;
+    const to = Math.min(days,end), n = to-t[0]+1;
+    if(n>0) out.push({from:t[0],to,n,rate:t[1],amt:n*t[1]});
+  });
+  return out;
+}
+const custCharge = (key,days) => days>0 ? custBreakdown(key,days).reduce((s,b)=>s+b.amt,0) : 0;
 
 function tierCharge(key, days){
   if(!(days>0)) return 0;
@@ -436,50 +444,45 @@ locSel.value="BKK04";
 function quick(){
   const loc=locSel.value, size=document.querySelector("input[name=size]:checked").value;
   const cargo=document.querySelector("input[name=cargo]:checked").value;
-  const dg=cargo==="DG", rf=cargo==="RF", group=groupOf(loc), key=`${group}|${dg?"DG":"GP"}|${size}`;
+  const dg=cargo==="DG", rf=cargo==="RF", key=custKey(cargo,size);
   const din=dayFromISO($("q-in").value), etd=dayFromISO($("q-etd").value);
   const qty=Math.max(1, parseInt($("q-qty").value)||1);
-  const sft=parseInt($("q-sft").value)||0;
-  const cgo=$("q-cgo").value;
-  const ft = sft>0 ? sft : ftTerminal(loc,dg,cgo);
+  const ftIn=$("q-sft").value.trim(), ftDef=custFtOf(cargo);
+  $("q-sft").placeholder = `ปกติ ${ftDef} วัน`;
+  const ftSet = ftIn!=="" && Number(ftIn)>=0;
+  const ft = ftSet ? parseInt(ftIn)||0 : ftDef;
   const valid = din!=null && etd!=null && etd>=din;
   const stay = valid ? etd-din+1 : null;
   const days = valid ? Math.max(stay-ft,0) : 0;
-  const per = tierCharge(key,days);
+  const stor = custCharge(key,days), elec = rf ? days*ELECTRIC_RF[size] : 0, per = stor+elec;
 
   $("r-total").innerHTML = `${money(per*qty)}<small>THB</small>`;
   $("r-note").textContent = (din==null||etd==null) ? "ใส่วันตู้เข้าและ ETD เพื่อเริ่มคำนวณ"
     : !valid ? "ตรวจวันที่: ETD ต้องไม่ก่อนวันตู้เข้า"
     : qty>1 ? `${money(per)} บาท/ตู้ × ${qty} ตู้` : days>0 ? "เกิน free time" : "ยังอยู่ใน free time ไม่มีค่าใช้จ่าย";
   const L=LOCS.find(l=>l.code===loc);
-  $("r-chips").innerHTML = `<span class="chip acc">${group}</span><span class="chip">${L.area} · ${esc(L.name)}</span><span class="chip">${size}</span>`
+  $("r-chips").innerHTML = `<span class="chip">${L.area} · ${esc(L.name)}</span><span class="chip">${size}</span>`
     + (dg?'<span class="chip dg">DG</span>':rf?'<span class="chip rf">RF</span>':`<span class="chip">${esc(cargo)}</span>`)
-    + (sft>0?'<span class="chip acc">Special F/T</span>':'')
-    + (!sft&&ft===0&&CFS_ZERO_FT_LOCS.includes(loc)?'<span class="chip acc">CFS/CY · F/T 0</span>':'');
+    + (ftSet?'<span class="chip acc">Free Time กรอกเอง</span>':'');
   $("r-stay").textContent = valid ? `${stay} วัน` : "–";
   $("r-ft").textContent = `${ft} วัน`;
   $("r-days").textContent = valid ? `${days} วัน` : "–";
-  $("r-freeuntil").textContent = din!=null ? `${dow(din+ft-1)} ${fmtDay(din+ft-1)}` : "–";
+  $("r-freeuntil").textContent = din!=null ? (ft>0 ? `${dow(din+ft-1)} ${fmtDay(din+ft-1)}` : "ไม่มี free time") : "–";
 
   let html="";
   if(valid && days>0){
-    const bk=breakdown(key,days); let sum=0;
-    bk.forEach(b=>{ sum+=b.amt; html+=`<tr><td>วันคิดเงินที่ ${b.from}${b.to>b.from?"–"+b.to:""} <span class="total-note">· ${b.n} วัน × ${money(b.rate)}</span></td><td class="num">${money(b.amt)}</td></tr>`; });
-    if(sum!==per) html+=`<tr class="diff"><td>ปรับตามยอดสะสมในตาราง Charge</td><td class="num">${per-sum>0?"+":""}${money(per-sum)}</td></tr>`;
+    custBreakdown(key,days).forEach(b=>{ html+=`<tr><td>วันคิดเงินที่ ${b.from}${b.to>b.from?"–"+b.to:""} <span class="total-note">· ${b.n} วัน × ${money(b.rate)}</span></td><td class="num">${money(b.amt)}</td></tr>`; });
+    if(elec) html+=`<tr><td>Electric charge (RF) <span class="total-note">· ${days} วัน × ${money(ELECTRIC_RF[size])}</span></td><td class="num">${money(elec)}</td></tr>`;
   } else if(valid){
-    html=`<tr><td class="total-note">ตู้เข้าภายใน free time ${ft} วัน · ไม่มีค่า storage</td><td></td></tr>`;
+    html=`<tr><td class="total-note">อยู่ภายใน free time ${ft} วัน · ไม่มีค่า storage</td><td></td></tr>`;
   }
   $("r-brk").innerHTML=html;
-
-  // customer
-  const cft=custFt(loc,dg,rf,"");
-  $("c-ft").textContent=`${cft} วัน`;
 
   // strip: gate-in options
   $("s-etd").textContent = etd!=null ? fmtDay(etd) : "–";
   if(etd==null){ $("s-bars").innerHTML=""; return; }
   const span = Math.max(ft+10, valid?stay:0, 14);
-  const vals=[]; for(let k=span-1;k>=0;k--){ const d=etd-k, st=k+1, ds=Math.max(st-ft,0); vals.push({d,st,ds,amt:tierCharge(key,ds)}); }
+  const vals=[]; for(let k=span-1;k>=0;k--){ const d=etd-k, st=k+1, ds=Math.max(st-ft,0); vals.push({d,st,ds,amt:custCharge(key,ds)+(rf?ds*ELECTRIC_RF[size]:0)}); }
   const max=Math.max(...vals.map(v=>v.amt),1);
   $("s-bars").innerHTML = vals.map(v=>{
     const cls=(v.ds>0?"paid":"free")+(v.d===din?" sel":"");
@@ -999,21 +1002,17 @@ $("d-import").addEventListener("change",async e=>{
 
 /* ------------------------------------------------------------------ tariff view */
 (function(){
-  const order=["G3","G4","G1","G2","CUST"];
-  $("t-cards").innerHTML = order.map(g=>{
-    const info=GROUP_INFO[g], sizes=["20'","40'"], cargos=["GP","DG"];
-    const ts=TIERS[`${g}|GP|20'`];
-    const rows=ts.map((t,i)=>{
-      const next = i+1<ts.length ? ts[i+1][0] : null;
-      const lbl = g==="CUST" ? `ขั้น ${i+1}` : ts.length===1 ? "ทุกวัน" : next==null ? `วันที่ ${t[0]+1} ขึ้นไป` : `วันที่ ${t[0]+1}–${next}`;
-      return `<tr><td>${lbl}</td>${cargos.flatMap(c=>sizes.map(s=>{ const tt=TIERS[`${g}|${c}|${s}`][i];
-        return `<td class="num">${money(tt?.[2]??0)}${g==="CUST"&&tt?`<br><span class="total-note">วันที่ ${tt[0]+1}+</span>`:""}</td>`; })).join("")}</tr>`;
-    }).join("");
-    const ftTxt = g==="CUST" ? "GP 5 · DG/RF 3 วัน" : g==="G1"||g==="G2" ? "7 วัน (DG 1)" : g==="G4" ? "5 วัน (DG 1)" : "3 วัน (DG 1)";
-    return `<div class="panel tcard"><h3><span class="chip acc">${g==="CUST"?"Customer":g}</span>${esc(info.title)}</h3>
-      <p>${esc(info.locs)} · Free time ${ftTxt}</p>
-      <div style="overflow-x:auto"><table class="tt"><thead><tr><th>วันคิดเงิน</th><th>GP/RF 20'</th><th>GP/RF 40'</th><th>DG 20'</th><th>DG 40'</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  const ts=CUST_RATES["GP|20'"];
+  const rows=ts.map((t,i)=>{
+    const lbl = i+1<ts.length ? `วันที่ ${t[0]}–${ts[i+1][0]-1}` : `วันที่ ${t[0]} ขึ้นไป`;
+    return `<tr><td>${lbl}</td>${["GP|20'","GP|40'","DG|20'","DG|40'"].map(k=>`<td class="num">${money(CUST_RATES[k][i][1])}</td>`).join("")}</tr>`;
   }).join("");
+  $("t-cards").innerHTML = `<div class="panel tcard"><h3><span class="chip acc">Customer</span>ค่า Storage ลูกค้า (บาท/วัน/ตู้)</h3>
+      <p>ใช้ทุก terminal · Free time GP/OOG/TK/FLEXIBAG 5 วัน · DG/RF 3 วัน</p>
+      <div style="overflow-x:auto"><table class="tt"><thead><tr><th>วันคิดเงิน</th><th>GP/RF/OOG/TK/FLEXIBAG 20'</th><th>GP/RF/OOG/TK/FLEXIBAG 40'</th><th>DG 20'</th><th>DG 40'</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+    <div class="panel tcard"><h3><span class="chip rf">RF</span>Electric charge (บาท/วัน/ตู้)</h3>
+      <p>คิดเฉพาะตู้ RF ตามจำนวนวันคิดเงิน (เกิน free time 3 วัน)</p>
+      <div style="overflow-x:auto"><table class="tt"><thead><tr><th></th><th>20' RF</th><th>40' RF</th></tr></thead><tbody><tr><td>ต่อวัน</td><td class="num">${money(ELECTRIC_RF["20'"])}</td><td class="num">${money(ELECTRIC_RF["40'"])}</td></tr></tbody></table></div></div>`;
 })();
 </script>
 
