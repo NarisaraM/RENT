@@ -269,13 +269,15 @@ function styleGrid(ws,{head=0,total=null,paidCol=null,skipEmpty=false,labelCol=n
 }
 function buildWorkbook(set){
   const rows=[...set.rows].sort((a,b)=>b.charge-a.charge||String(a.cntr).localeCompare(b.cntr)), r0=rows[0], s=agg(rows);
+  // ฝั่งลูกค้า: ใช้ค่า Storage ลูกค้าที่นับถึง CUST ETD (ตู้ที่ไม่มี CUST ETD ไม่นับ)
+  const hasC=r=>r.cStay!=null, custTotal=rows.reduce((t,r)=>t+(hasC(r)?r.cCharge:0),0), custDays=rows.reduce((t,r)=>t+(hasC(r)?r.cDays:0),0), noCetd=rows.filter(r=>!hasC(r)).length;
   const wb=XLSX.utils.book_new();
   // Summary
   const sum=[["HAL Storage — สรุปค่า Storage"],[],
     ["ETD",serial(r0.etd)],["SVC",r0.svc],["VSL",r0.vsl],["VOY",r0.voyNo],["POL",r0.pol],["LWharf",r0.lwharf],["Area",r0.area],["Terminal group",r0.group],[],
     ["จำนวนตู้",s.n],["20'",s.c20],["40'",s.c40],["ตู้ที่เกิน F/T",s.over],["Storage Days",s.days],
-    ["Total Storage Charge",s.charge],["Amount due to Customer",s.cust],["Collection",rows.reduce((t,r)=>t+r.collect,0)],["Amount due to HAL",s.hal],[],
-    ["คำนวณเมื่อ",new Date().toLocaleString("th-TH")],["ไฟล์ต้นทาง",[...new Set(rows.map(r=>r.file))].join(", ")]];
+    ["Total Storage Charge",s.charge],["Amount due to Customer (ตาม CUST ETD)",custTotal],["Collection",rows.reduce((t,r)=>t+r.collect,0)],["Amount due to HAL",s.hal],[],
+    ["คำนวณเมื่อ",new Date().toLocaleString("th-TH")],["ไฟล์ต้นทาง",[...new Set(rows.map(r=>r.file))].join(", ")]].concat(noCetd?[["ไม่มี CUST ETD",`${noCetd} ตู้ (ไม่ได้คิดค่าลูกค้า)`]]:[]);
   const ws1=XLSX.utils.aoa_to_sheet(sum);
   if(ws1.B3) ws1.B3.z="dd/mm/yyyy";
   ["B17","B18","B19","B20"].forEach(a=>{ if(ws1[a]) ws1[a].z="#,##0"; });
@@ -286,9 +288,9 @@ function buildWorkbook(set){
   const data=rows.map(r=>{ const b=r._b;
     return [r.cntr,r.group,r.loc,r.bkno,b[26]??"",b[27]??"",b[4]??"",b[14]??"",b[18]??"",b[25]??"",r.tpsz,b[84]??"",r.dg?"DG":"",r.rf?"RF":"",
       r.vessel,r.voy,r.svc??"",r.size,serial(r.orig),serial(r.etd),(r.orig!=null&&r.etd!=null)?r.etd-r.orig:null,serial(r.allow),serial(r.din),r.stay,r.ft,
-      r.days,r.charge,r.spft||null,r.tml||null,r.custFt,(r.allow!=null&&r.etd!=null)?r.etd-r.allow+1:null,r.over,
-      r.custAmt,r.collect||null,r.charge-r.collect,r.ftOverride!=null?`F/T แก้ในแอพ (เดิม ${r.ftDefault})`:(r.ftNote||null),b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
-  const tot=["TOTAL",`${s.n} ตู้`]; tot[25]=s.days; tot[26]=s.charge; tot[32]=s.cust; tot[34]=s.hal;
+      r.days,r.charge,r.spft||null,r.tml||null,r.custFt,(r.allow!=null&&r.etd!=null)?r.etd-r.allow+1:null,hasC(r)?r.cDays:null,
+      hasC(r)?r.cCharge:null,r.collect||null,r.charge-r.collect,[r.ftOverride!=null?`F/T แก้ในแอพ (เดิม ${r.ftDefault})`:r.ftNote, hasC(r)?null:"ไม่มี CUST ETD"].filter(Boolean).join(" · ")||null,b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
+  const tot=["TOTAL",`${s.n} ตู้`]; tot[25]=s.days; tot[26]=s.charge; tot[31]=custDays; tot[32]=custTotal; tot[34]=s.hal;
   const ws2=XLSX.utils.aoa_to_sheet([CS_HEAD,...data,tot]);
   const dateCols=[18,19,21,22,37], moneyCols=[26,32,33,34];
   for(let i=1;i<=data.length+1;i++){
