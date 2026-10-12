@@ -204,3 +204,14 @@ body.wide .grid th, body.wide .grid td{padding-inline:7px}
 body.wide .grid td.shp{max-width:220px}
 .grid input.ftin{width:56px;min-width:56px}
 .grid input.cetd{width:136px;min-width:136px}
+
+/* keep hidden things hidden on hosts without a reset (e.g. GitHub Pages) */
+[hidden]{display:none!important}
+
+/* full-width tables: wrap long text instead of scrolling sideways */
+body.wide .grid{font-size:13px}
+body.wide .grid th{white-space:normal;line-height:1.25;vertical-align:bottom}
+body.wide .grid td{padding-block:6px}
+body.wide .grid td.shp{white-space:normal;max-width:none;min-width:150px;overflow:visible;text-overflow:clip;line-height:1.3}
+body.wide .grid td.mono{font-size:12.5px}
+body.wide .grid td[style*="display:flex"]{flex-wrap:wrap}
