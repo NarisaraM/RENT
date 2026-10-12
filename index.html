@@ -6,8 +6,8 @@
 <title>HAL Storage Calculator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/app.css?v=20261013i">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Big+Shoulders+Stencil+Display:wght@700;800&display=swap">
+<link rel="stylesheet" href="assets/app.css?v=20261013l">
 </head>
 <body>
 <header class="hero">
@@ -19,7 +19,7 @@
         <p>Customer storage charges at the terminal, per the Customer tariff · BKK · UTCT · LCH</p>
       </div>
       <div class="hero-brand">
-        <img class="brand-logo" src="logo.png?v=20261013i" alt="Heung-A Line 興亞LINE株式會社" width="234" height="53">
+        <img class="brand-logo" src="logo.png?v=20261013l" alt="Heung-A Line 興亞LINE株式會社" width="234" height="53">
         <span class="hero-clock" id="hero-clock">&nbsp;</span>
       </div>
     </div>
@@ -35,7 +35,12 @@
 <main>
 <div class="page-h"><h2>Quick Calculator</h2><p>Customer storage charge per container, per the Customer tariff in COST-RENT</p></div>
 <section id="view-quick" class="qc">
-  <form class="panel" id="qform" autocomplete="off">
+  <form class="panel ctr" id="qform" autocomplete="off">
+    <div class="ctr-band blue" aria-hidden="true">
+      <span class="ctr-brand stencil">HEUNG A</span>
+      <span class="ctr-plate"><span class="ctr-no" id="q-ctrno">HALU 261013 0</span><span class="ctr-iso" id="q-iso">22G1</span></span>
+      <span class="ctr-doors"></span>
+    </div>
     <div class="field">
       <label for="q-loc">Terminal (Location)</label>
       <select id="q-loc"></select>
@@ -69,14 +74,15 @@
   </form>
 
   <div class="result">
-    <article class="panel ticket" aria-live="polite">
-      <div class="ticket-top">
-        <div style="display:grid;gap:6px">
-          <span class="label">Customer storage charge</span>
+    <article class="panel ticket ctr" aria-live="polite">
+      <div class="ctr-band green ticket-top">
+        <div class="ticket-sum">
+          <span class="band-label stencil">Customer storage charge</span>
           <div class="big" id="r-total">0<small>THB</small></div>
-          <span class="total-note" id="r-note"></span>
+          <span class="band-note" id="r-note"></span>
         </div>
         <div class="chips" id="r-chips"></div>
+        <span class="ctr-doors"></span>
       </div>
       <div class="timeline">
         <div><span class="label">Days in terminal</span><span class="v" id="r-stay">–</span></div>
@@ -87,7 +93,7 @@
       <table class="brk"><tbody id="r-brk"></tbody></table>
     </article>
 
-    <article class="panel strip">
+    <article class="panel strip ctr">
       <div class="strip-head">
         <h3 style="font-size:15px">What if the container gates in on another day?</h3>
         <span class="total-note">Per container · ETD <span class="mono" id="s-etd"></span></span>
@@ -98,8 +104,8 @@
 </section>
 </main>
 
-<script src="assets/core.js?v=20261013i"></script>
-<script src="assets/hero.js?v=20261013i"></script>
-<script src="assets/quick.js?v=20261013i"></script>
+<script src="assets/core.js?v=20261013l"></script>
+<script src="assets/hero.js?v=20261013l"></script>
+<script src="assets/quick.js?v=20261013l"></script>
 </body>
 </html>

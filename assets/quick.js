@@ -7,10 +7,26 @@ const locSel=$("q-loc");
 });
 locSel.value="BKK04";
 
+// ISO 6346: check digit of a container number (owner code + U + 6-digit serial)
+function iso6346Check(code){
+  const val=c=>{ if(/\d/.test(c)) return +c; let v=10+c.charCodeAt(0)-65; return v+Math.floor((v-1)/10); }; // skips 11, 22, 33
+  const sum=[...code].reduce((s,c,i)=>s+val(c)*2**i,0);
+  return sum%11%10;
+}
+// ISO size/type code for the plate on the blue band (e.g. 22G1 = 20' general purpose)
+const ISO_TYPE={GP:"G1",DG:"G1",FLEXIBAG:"G1",RF:"R1",OOG:"U1",TK:"T1"};
+function plate(size,cargo){
+  const d=new Date(), serial=String(d.getFullYear()%100).padStart(2,"0")+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+  const owner="HALU"+serial;
+  $("q-ctrno").textContent=`HALU ${serial} ${iso6346Check(owner)}`;
+  $("q-iso").textContent=(size==="20'"?"22":"45")+ISO_TYPE[cargo];
+}
+
 function quick(){
   const loc=locSel.value, size=document.querySelector("input[name=size]:checked").value;
   const cargo=document.querySelector("input[name=cargo]:checked").value;
   const dg=cargo==="DG", rf=cargo==="RF", key=custKey(cargo,size);
+  plate(size,cargo);
   const din=dayFromISO($("q-in").value), etd=dayFromISO($("q-etd").value);
   const qty=Math.max(1, parseInt($("q-qty").value)||1);
   const ftIn=$("q-sft").value.trim(), ftDef=custFtOf(cargo);
