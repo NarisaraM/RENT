@@ -45,7 +45,7 @@
 
     const K = "0;0.08;0.10;0.20;0.40;0.55;0.60;0.70;0.92;1";
     const svg = `
-<svg viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" width="100%" height="100%" role="img" aria-label="ปั้นจั่นยกตู้ HEUNG A จากกองตู้ลงรถขนตู้">
+<svg viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" width="100%" height="100%" role="img" aria-label="A gantry crane lifts a HEUNG A container from the stack onto a truck">
   <defs>${defs}</defs>
   <g fill="#fff" opacity=".9">
     <g><ellipse cx="140" cy="28" rx="34" ry="9"/><ellipse cx="165" cy="22" rx="22" ry="10"/>

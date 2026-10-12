@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -7,33 +7,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/app.css?v=20261013g">
+<link rel="stylesheet" href="assets/app.css?v=20261013h">
 </head>
 <body>
 <header class="hero">
   <div class="hero-card">
     <div class="hero-top">
       <div class="hero-copy">
-        <span class="hero-pill"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM8 5.4v8.4M5 7.6h6M2.6 9.6c.4 2.6 2.6 4.2 5.4 4.2s5-1.6 5.4-4.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Container Storage · ฝั่งลูกค้า</span>
+        <span class="hero-pill"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM8 5.4v8.4M5 7.6h6M2.6 9.6c.4 2.6 2.6 4.2 5.4 4.2s5-1.6 5.4-4.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Container Storage · Customer</span>
         <h1>HAL Storage Calculator</h1>
-        <p>คำนวณค่าฝากตู้ที่ terminal ตามตาราง Customer · BKK · UTCT · LCH</p>
+        <p>Customer storage charges at the terminal, per the Customer tariff · BKK · UTCT · LCH</p>
       </div>
       <div class="hero-brand">
-        <img class="brand-logo" src="logo.png?v=20261013g" alt="Heung-A Line 興亞LINE株式會社" width="234" height="53">
+        <img class="brand-logo" src="logo.png?v=20261013h" alt="Heung-A Line 興亞LINE株式會社" width="234" height="53">
         <span class="hero-clock" id="hero-clock">&nbsp;</span>
       </div>
     </div>
     <div class="hero-scene" id="hero-scene"></div>
   </div>
-  <nav aria-label="หน้า">
-    <a href="./" aria-current="page">คำนวณด่วน</a>
-    <a href="file.html">คำนวณจากไฟล์เรือ</a>
+  <nav aria-label="Pages">
+    <a href="./" aria-current="page">Quick Calculator</a>
+    <a href="file.html">Vessel Files</a>
     <a href="tariff.html">Tariff</a>
   </nav>
 </header>
 
 <main>
-<div class="page-h"><h2>คำนวณด่วน</h2><p>ค่า storage ที่เก็บลูกค้า ต่อตู้ ตามตาราง Customer ใน COST-RENT</p></div>
+<div class="page-h"><h2>Quick Calculator</h2><p>Customer storage charge per container, per the Customer tariff in COST-RENT</p></div>
 <section id="view-quick" class="qc">
   <form class="panel" id="qform" autocomplete="off">
     <div class="field">
@@ -41,15 +41,15 @@
       <select id="q-loc"></select>
     </div>
     <div class="field">
-      <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">ขนาดตู้</span>
-      <div class="seg" role="radiogroup" aria-label="ขนาดตู้">
+      <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">Container size</span>
+      <div class="seg" role="radiogroup" aria-label="Container size">
         <input type="radio" name="size" id="q-s20" value="20'" checked><label for="q-s20">20'</label>
         <input type="radio" name="size" id="q-s40" value="40'"><label for="q-s40">40' / 45'</label>
       </div>
     </div>
     <div class="field">
-      <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">ประเภทสินค้า</span>
-      <div class="seg g3" role="radiogroup" aria-label="ประเภทสินค้า">
+      <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">Cargo type</span>
+      <div class="seg g3" role="radiogroup" aria-label="Cargo type">
         <input type="radio" name="cargo" id="q-gp" value="GP" checked><label for="q-gp">GP</label>
         <input type="radio" name="cargo" id="q-rf" value="RF"><label for="q-rf">RF</label>
         <input type="radio" name="cargo" id="q-dg" value="DG"><label for="q-dg">DG</label>
@@ -59,12 +59,12 @@
       </div>
     </div>
     <div class="row2">
-      <div class="field"><label for="q-in">วันตู้เข้า (Gate in)</label><input type="date" id="q-in"></div>
-      <div class="field"><label for="q-etd">ETD เรือ</label><input type="date" id="q-etd"></div>
+      <div class="field"><label for="q-in">Gate in</label><input type="date" id="q-in"></div>
+      <div class="field"><label for="q-etd">Vessel ETD</label><input type="date" id="q-etd"></div>
     </div>
     <div class="row2">
-      <div class="field"><label for="q-qty">จำนวนตู้</label><input type="number" id="q-qty" min="1" step="1" value="1" inputmode="numeric"></div>
-      <div class="field"><label for="q-sft">Free Time</label><input type="number" id="q-sft" min="0" step="1" placeholder="ไม่มี" inputmode="numeric"></div>
+      <div class="field"><label for="q-qty">Containers</label><input type="number" id="q-qty" min="1" step="1" value="1" inputmode="numeric"></div>
+      <div class="field"><label for="q-sft">Free Time</label><input type="number" id="q-sft" min="0" step="1" placeholder="None" inputmode="numeric"></div>
     </div>
   </form>
 
@@ -72,25 +72,25 @@
     <article class="panel ticket" aria-live="polite">
       <div class="ticket-top">
         <div style="display:grid;gap:6px">
-          <span class="label">ค่า Storage ที่เก็บลูกค้า</span>
+          <span class="label">Customer storage charge</span>
           <div class="big" id="r-total">0<small>THB</small></div>
           <span class="total-note" id="r-note"></span>
         </div>
         <div class="chips" id="r-chips"></div>
       </div>
       <div class="timeline">
-        <div><span class="label">อยู่ใน terminal</span><span class="v" id="r-stay">–</span></div>
-        <div><span class="label">Free time ลูกค้า</span><span class="v" id="r-ft">–</span></div>
-        <div><span class="label">วันคิดเงิน</span><span class="v hot" id="r-days">–</span></div>
-        <div><span class="label">ฟรีถึงวันที่</span><span class="v" id="r-freeuntil" style="font-size:16px">–</span></div>
+        <div><span class="label">Days in terminal</span><span class="v" id="r-stay">–</span></div>
+        <div><span class="label">Customer free time</span><span class="v" id="r-ft">–</span></div>
+        <div><span class="label">Chargeable days</span><span class="v hot" id="r-days">–</span></div>
+        <div><span class="label">Free until</span><span class="v" id="r-freeuntil" style="font-size:16px">–</span></div>
       </div>
       <table class="brk"><tbody id="r-brk"></tbody></table>
     </article>
 
     <article class="panel strip">
       <div class="strip-head">
-        <h3 style="font-size:15px">ถ้าตู้เข้าวันอื่น จะเสียเท่าไร</h3>
-        <span class="total-note">ต่อ 1 ตู้ · ETD <span class="mono" id="s-etd"></span></span>
+        <h3 style="font-size:15px">What if the container gates in on another day?</h3>
+        <span class="total-note">Per container · ETD <span class="mono" id="s-etd"></span></span>
       </div>
       <div class="bars" id="s-bars"></div>
     </article>
@@ -98,8 +98,8 @@
 </section>
 </main>
 
-<script src="assets/core.js?v=20261013g"></script>
-<script src="assets/hero.js?v=20261013g"></script>
-<script src="assets/quick.js?v=20261013g"></script>
+<script src="assets/core.js?v=20261013h"></script>
+<script src="assets/hero.js?v=20261013h"></script>
+<script src="assets/quick.js?v=20261013h"></script>
 </body>
 </html>

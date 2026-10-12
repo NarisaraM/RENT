@@ -14,7 +14,7 @@ function quick(){
   const din=dayFromISO($("q-in").value), etd=dayFromISO($("q-etd").value);
   const qty=Math.max(1, parseInt($("q-qty").value)||1);
   const ftIn=$("q-sft").value.trim(), ftDef=custFtOf(cargo);
-  $("q-sft").placeholder = `ปกติ ${ftDef} วัน`;
+  $("q-sft").placeholder = `Default ${ftDef} days`;
   const ftSet = ftIn!=="" && Number(ftIn)>=0;
   const ft = ftSet ? parseInt(ftIn)||0 : ftDef;
   const valid = din!=null && etd!=null && etd>=din;
@@ -23,24 +23,24 @@ function quick(){
   const stor = custCharge(key,days), elec = rf ? days*ELECTRIC_RF[size] : 0, per = stor+elec;
 
   $("r-total").innerHTML = `${money(per*qty)}<small>THB</small>`;
-  $("r-note").textContent = (din==null||etd==null) ? "ใส่วันตู้เข้าและ ETD เพื่อเริ่มคำนวณ"
-    : !valid ? "ตรวจวันที่: ETD ต้องไม่ก่อนวันตู้เข้า"
-    : qty>1 ? `${money(per)} บาท/ตู้ × ${qty} ตู้` : days>0 ? "เกิน free time" : "ยังอยู่ใน free time ไม่มีค่าใช้จ่าย";
+  $("r-note").textContent = (din==null||etd==null) ? "Enter the gate-in date and ETD to calculate"
+    : !valid ? "Check the dates: ETD cannot be before gate-in"
+    : qty>1 ? `${money(per)} THB/container × ${qty} containers` : days>0 ? "Over free time" : "Within free time, no charge";
   const L=LOCS.find(l=>l.code===loc);
   $("r-chips").innerHTML = `<span class="chip">${L.area} · ${esc(L.name)}</span><span class="chip">${size}</span>`
     + (dg?'<span class="chip dg">DG</span>':rf?'<span class="chip rf">RF</span>':`<span class="chip">${esc(cargo)}</span>`)
-    + (ftSet?'<span class="chip acc">Free Time กรอกเอง</span>':'');
-  $("r-stay").textContent = valid ? `${stay} วัน` : "–";
-  $("r-ft").textContent = `${ft} วัน`;
-  $("r-days").textContent = valid ? `${days} วัน` : "–";
-  $("r-freeuntil").textContent = din!=null ? (ft>0 ? `${dow(din+ft-1)} ${fmtDay(din+ft-1)}` : "ไม่มี free time") : "–";
+    + (ftSet?'<span class="chip acc">Free Time entered</span>':'');
+  $("r-stay").textContent = valid ? `${stay} days` : "–";
+  $("r-ft").textContent = `${ft} days`;
+  $("r-days").textContent = valid ? `${days} days` : "–";
+  $("r-freeuntil").textContent = din!=null ? (ft>0 ? `${dow(din+ft-1)} ${fmtDay(din+ft-1)}` : "No free time") : "–";
 
   let html="";
   if(valid && days>0){
-    custBreakdown(key,days).forEach(b=>{ html+=`<tr><td>วันคิดเงินที่ ${b.from}${b.to>b.from?"–"+b.to:""} <span class="total-note">· ${b.n} วัน × ${money(b.rate)}</span></td><td class="num">${money(b.amt)}</td></tr>`; });
-    if(elec) html+=`<tr><td>Electric charge (RF) <span class="total-note">· ${days} วัน × ${money(ELECTRIC_RF[size])}</span></td><td class="num">${money(elec)}</td></tr>`;
+    custBreakdown(key,days).forEach(b=>{ html+=`<tr><td>Chargeable day${b.to>b.from?"s":""} ${b.from}${b.to>b.from?"–"+b.to:""} <span class="total-note">· ${b.n} day${b.n>1?"s":""} × ${money(b.rate)}</span></td><td class="num">${money(b.amt)}</td></tr>`; });
+    if(elec) html+=`<tr><td>Electric charge (RF) <span class="total-note">· ${days} day${days>1?"s":""} × ${money(ELECTRIC_RF[size])}</span></td><td class="num">${money(elec)}</td></tr>`;
   } else if(valid){
-    html=`<tr><td class="total-note">อยู่ภายใน free time ${ft} วัน · ไม่มีค่า storage</td><td></td></tr>`;
+    html=`<tr><td class="total-note">Within ${ft} days free time · no storage charge</td><td></td></tr>`;
   }
   $("r-brk").innerHTML=html;
 
@@ -53,7 +53,7 @@ function quick(){
   $("s-bars").innerHTML = vals.map(v=>{
     const cls=(v.ds>0?"paid":"free")+(v.d===din?" sel":"");
     const w = v.ds>0 ? Math.max(v.amt/max*100,2) : 100;
-    return `<div class="bar ${cls}"><span class="d">${dow(v.d)} ${fmtDay(v.d,true)} · ${v.st}ว</span><span class="track"><span class="fill" style="width:${w}%"></span></span><span class="a">${v.ds>0?money(v.amt):"ฟรี"}</span></div>`;
+    return `<div class="bar ${cls}"><span class="d">${dow(v.d)} ${fmtDay(v.d,true)} · ${v.st}d</span><span class="track"><span class="fill" style="width:${w}%"></span></span><span class="a">${v.ds>0?money(v.amt):"Free"}</span></div>`;
   }).join("");
 }
 $("qform").addEventListener("input",quick);

@@ -47,13 +47,13 @@ function classify(wb,name){
       if(src.kind) break;
     }
   }
-  if(!src.kind){ src.error="ไม่รู้จักรูปแบบไฟล์ (ต้องเป็นไฟล์ Loading, Booking, Gate move หรือ TEMPLATE)"; return src; }
+  if(!src.kind){ src.error="Unrecognised file (must be a Loading, Booking, Gate move or TEMPLATE file)"; return src; }
   if(src.kind==="LOAD"||src.kind==="TEMPLATE"){
     const full=src.loading.filter(r=>r[10]==="F");
     const v=[...new Set(full.map(r=>`${r[2]} ${r[3]}`))];
-    src.info=`${v.join(", ")||"–"} · ${full.length} ตู้`;
+    src.info=`${v.join(", ")||"–"} · ${full.length} containers`;
   } else if(src.kind==="BKG") src.info=`${src.booking.length} booking`;
-  else src.info=`${src.gate.length} รายการ`;
+  else src.info=`${src.gate.length} moves`;
   return src;
 }
 
@@ -63,22 +63,22 @@ function recompute(){
   SOURCES.forEach(s=>s.gate.forEach(r=>{ (gates[r[0]] ||= []).push(r); }));
   const hasBkg=SOURCES.some(s=>s.booking.length), hasGate=SOURCES.some(s=>s.gate.length), hasLoad=SOURCES.some(s=>s.loading.length);
   ROWS=[]; WARNINGS=[];
-  if(SOURCES.length&&!hasLoad) WARNINGS.push("ยังไม่มีไฟล์ Loading (LOAD) ซึ่งใช้เป็นรายชื่อตู้ที่จะคำนวณ");
-  if(hasLoad&&!hasBkg) WARNINGS.push("ยังไม่มีไฟล์ Booking (BKG) จึงยังแยกตู้ DG และ Service ไม่ได้");
-  if(hasLoad&&!hasGate) WARNINGS.push("ยังไม่มีไฟล์ Gate move (GATE) จึงยังไม่รู้วันตู้เข้า และคำนวณค่า storage ไม่ได้");
+  if(SOURCES.length&&!hasLoad) WARNINGS.push("No Loading (LOAD) file yet; it lists the containers to calculate");
+  if(hasLoad&&!hasBkg) WARNINGS.push("No Booking (BKG) file yet, so DG containers, service and CUST ETD are unknown");
+  if(hasLoad&&!hasGate) WARNINGS.push("No Gate move (GATE) file yet, so gate-in dates are unknown and storage cannot be calculated");
   SOURCES.filter(s=>s.loading.length).forEach(s=>{
     s.loading.forEach(r=>{
       if(r[10]!=="F") return;
       const cntr=r[0], loc=r[13], bkno=r[16], tpsz=String(r[4]||"");
-      const b=bk[bkno]||[]; if(hasBkg&&!bk[bkno]) WARNINGS.push(`${cntr}: ไม่พบ Booking ${bkno}`);
+      const b=bk[bkno]||[]; if(hasBkg&&!bk[bkno]) WARNINGS.push(`${cntr}: booking ${bkno} not found`);
       const gl=gates[cntr]||[], g=gl.find(x=>x[12]===bkno)||gl[0];
-      if(hasGate&&!g) WARNINGS.push(`${cntr}: ไม่พบวันตู้เข้าในไฟล์ Gate move`);
+      if(hasGate&&!g) WARNINGS.push(`${cntr}: no gate-in date in the Gate move file`);
       const m=s.manual[cntr]||{};
       const dg=![null,undefined,"",0,"0"].includes(b[42]), rf=tpsz.endsWith("RE");
       const size=tpsz.startsWith("22")?"20'":"40'", svc=b[11];
       const etd=toDay(r[1]), din=g?toDay(g[3]):null;
-      let ftDefault=ftTerminal(loc,dg,b[84]), ftNote=(ftDefault===0&&CFS_ZERO_FT_LOCS.includes(loc))?"CFS/CY ที่ PAT: F/T 0 วัน":"";
-      if(m.ftOverride!=null&&m.ftOverride!==ftDefault){ WARNINGS.push(`${cntr}: ใช้ F/T = ${m.ftOverride} วัน ตามที่กรอกเองในชีท CS (กฎให้ ${ftDefault} วัน)`); ftDefault=m.ftOverride; ftNote="กรอกเองในชีท CS"; }
+      let ftDefault=ftTerminal(loc,dg,b[84]), ftNote=(ftDefault===0&&CFS_ZERO_FT_LOCS.includes(loc))?"CFS/CY at PAT: F/T 0 days":"";
+      if(m.ftOverride!=null&&m.ftOverride!==ftDefault){ WARNINGS.push(`${cntr}: using F/T = ${m.ftOverride} days entered in the CS sheet (rule gives ${ftDefault} days)`); ftDefault=m.ftOverride; ftNote="Entered in CS sheet"; }
       if(m.tml&&m.tml.toUpperCase()==="TML"&&m.spft>0){ ftDefault=m.spft; ftNote="Special F/T (TML)"; }
       const allow=toDay(m.allow);
       const over=(allow!=null&&din!=null)?Math.max(Math.max(allow-din,0)-(m.spft||0),0):0;
@@ -110,7 +110,7 @@ async function addFiles(list){
     try{
       const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellFormula:true});
       src=classify(wb,f.name);
-    }catch(e){ src={name:f.name,kind:null,loading:[],booking:[],gate:[],manual:{},error:"อ่านไฟล์ไม่ได้ ตรวจว่าเป็นไฟล์ Excel ที่ไม่ได้ตั้งรหัสผ่าน"}; }
+    }catch(e){ src={name:f.name,kind:null,loading:[],booking:[],gate:[],manual:{},error:"Could not read the file. Check it is an Excel file without a password"}; }
     SOURCES=SOURCES.filter(x=>x.name!==f.name).concat(src);
   }
   renderFiles();
@@ -127,25 +127,25 @@ function renderFiles(){
   recompute();
   const has=k=>SOURCES.some(s=>s.kind===k||s.kind==="TEMPLATE");
   const slots = SOURCES.length ? `<div class="slots">${["LOAD","BKG","GATE"].map(k=>`<span class="slot ${has(k)?"on":""}"><b>${has(k)?"✓":"·"}</b>${k} <span>${KIND_LABEL[k]}</span></span>`).join("")}</div>` : "";
-  $("f-list").innerHTML = SOURCES.length ? slots + SOURCES.map((s,i)=>`<span class="chip ${s.error?"dg":"ok"}" title="${esc(s.error||"")}"><b>${s.kind||"?"}</b> ${esc(s.name)}${s.info?" · "+esc(s.info):""}<button type="button" class="x" data-i="${i}" aria-label="เอาไฟล์ ${esc(s.name)} ออก">×</button></span>`).join("")
-    + `<button class="btn" id="f-clear" type="button">ล้างทั้งหมด</button>` : "";
+  $("f-list").innerHTML = SOURCES.length ? slots + SOURCES.map((s,i)=>`<span class="chip ${s.error?"dg":"ok"}" title="${esc(s.error||"")}"><b>${s.kind||"?"}</b> ${esc(s.name)}${s.info?" · "+esc(s.info):""}<button type="button" class="x" data-i="${i}" aria-label="Remove ${esc(s.name)}">×</button></span>`).join("")
+    + `<button class="btn" id="f-clear" type="button">Clear all</button>` : "";
   $("f-list").querySelectorAll(".x").forEach(b=>b.onclick=()=>{ SOURCES.splice(+b.dataset.i,1); renderFiles(); });
   if($("f-clear")) $("f-clear").onclick=()=>{SOURCES=[];OVERRIDES.clear();CUST_ETD_OVR.clear();CUST_CALC=false;renderFiles();};
   const w=SOURCES.filter(s=>s.error).map(s=>`${s.name} — ${s.error}`).concat(WARNINGS);
-  $("f-warn").innerHTML = w.length ? `<div class="warns"><strong>ข้อควรตรวจสอบ</strong>${w.map(x=>`<span>${esc(x)}</span>`).join("")}</div>` : "";
+  $("f-warn").innerHTML = w.length ? `<div class="warns"><strong>Please check</strong>${w.map(x=>`<span>${esc(x)}</span>`).join("")}</div>` : "";
   renderResults();
 }
 
 function renderResults(){
   const rows=allRows(), out=$("f-out");
-  if(!rows.length){ out.innerHTML = SOURCES.some(s=>s.loading.length) ? `<p class="empty">ไม่พบตู้ Full ในไฟล์ Loading</p>` : ""; return; }
+  if(!rows.length){ out.innerHTML = SOURCES.some(s=>s.loading.length) ? `<p class="empty">No full containers in the Loading file</p>` : ""; return; }
   const areas=["BKK","UTCT","LCH"];
   const tiles = areas.map(a=>{ const s=agg(rows.filter(r=>r.area===a));
     return `<div class="panel area ${s.charge>0?"has":""}"><span class="label">${a}</span><span class="amt">${money(s.charge)}</span>
-      <span class="sub">${s.n} ตู้ · เกิน F/T ${s.over} ตู้ · ${s.days} วัน</span></div>`; }).join("");
+      <span class="sub">${s.n} containers · ${s.over} over F/T · ${s.days} days</span></div>`; }).join("");
   const g=agg(rows);
-  const grand=`<div class="panel area grand"><span class="label">รวมทั้งหมด (HAL จ่าย)</span><span class="amt">${money(g.hal)}</span>
-      <span class="sub">${g.n} ตู้ · 20' ${g.c20} / 40' ${g.c40} · เก็บลูกค้า ${money(g.cust)}</span></div>`;
+  const grand=`<div class="panel area grand"><span class="label">Total (HAL pays)</span><span class="amt">${money(g.hal)}</span>
+      <span class="sub">${g.n} containers · 20' ${g.c20} / 40' ${g.c40} · customer ${money(g.cust)}</span></div>`;
 
   // per voyage set (ETD SVC VSL VOY POL LWharf) — one export file each
   const vt = voyageSets().map(v=>{ const s=agg(v.rows); const r0=v.rows[0];
@@ -155,24 +155,24 @@ function renderResults(){
       <td style="display:flex;gap:6px"><button class="btn xbtn" type="button" data-k="${esc(v.key)}" title="${esc(exportName(r0))}">Export</button></td></tr>`; }).join("");
 
   out.innerHTML = `<div class="areas">${tiles}${grand}</div>
-  <div class="section-h"><h2>สรุปตามเที่ยวเรือ</h2>
-    <div class="tools"><span class="total-note" id="x-status" aria-live="polite"></span><button class="btn primary" type="button" id="x-all">Export ทั้งหมด (.xlsx)</button></div>
+  <div class="section-h"><h2>Voyage summary</h2>
+    <div class="tools"><span class="total-note" id="x-status" aria-live="polite"></span><button class="btn primary" type="button" id="x-all">Export all (.xlsx)</button></div>
   </div>
-  <div class="scroll"><table class="grid"><thead><tr><th>พื้นที่</th><th>ETD</th><th>SVC</th><th>VSL / VOY</th><th>POL</th><th>LWharf</th><th class="r">ตู้</th><th class="r">20'</th><th class="r">40'</th><th class="r">เกิน F/T</th><th class="r">วันคิดเงิน</th><th class="r">ค่า Storage</th><th class="r">เก็บลูกค้า</th><th class="r">HAL จ่าย</th><th>ไฟล์</th></tr></thead><tbody>${vt}</tbody></table></div>
-  <p class="total-note" style="margin-top:8px">ชื่อไฟล์ Export = ETD_SVC_VSL_VOY_POL_LWharf เช่น <span class="mono">${esc(exportName(voyageSets()[0].rows[0]))}</span></p>
-  <div class="section-h"><h2>รายตู้</h2>
+  <div class="scroll"><table class="grid"><thead><tr><th>Area</th><th>ETD</th><th>SVC</th><th>VSL / VOY</th><th>POL</th><th>LWharf</th><th class="r">Cntrs</th><th class="r">20'</th><th class="r">40'</th><th class="r">Over F/T</th><th class="r">Chargeable days</th><th class="r">Storage</th><th class="r">Customer</th><th class="r">HAL pays</th><th>File</th></tr></thead><tbody>${vt}</tbody></table></div>
+  <p class="total-note" style="margin-top:8px">Export file name = ETD_SVC_VSL_VOY_POL_LWharf, e.g. <span class="mono">${esc(exportName(voyageSets()[0].rows[0]))}</span></p>
+  <div class="section-h"><h2>Containers</h2>
     <div class="tools">
-      <div class="filt" role="group" aria-label="กรองพื้นที่">${["ALL",...areas].map(a=>`<button type="button" data-a="${a}" aria-pressed="${AREA_FILTER===a}">${a==="ALL"?"ทั้งหมด":a}</button>`).join("")}</div>
-      <label class="check"><input type="checkbox" id="f-paid" ${ONLY_PAID?"checked":""}> เฉพาะที่มีค่า</label>
-      <input type="search" id="f-q" placeholder="ค้นหาตู้ / booking / shipper" value="${esc(QUERY)}">
-      <button class="btn primary" type="button" id="f-ccalc">คำนวณค่า Storage ลูกค้า (ตาม CUST ETD)</button>
-      <button class="btn" type="button" id="f-copy">คัดลอกตารางไปวาง Excel</button>
+      <div class="filt" role="group" aria-label="Filter by area">${["ALL",...areas].map(a=>`<button type="button" data-a="${a}" aria-pressed="${AREA_FILTER===a}">${a==="ALL"?"All":a}</button>`).join("")}</div>
+      <label class="check"><input type="checkbox" id="f-paid" ${ONLY_PAID?"checked":""}> Charged only</label>
+      <input type="search" id="f-q" placeholder="Search container / booking / shipper" value="${esc(QUERY)}">
+      <button class="btn primary" type="button" id="f-ccalc">Calculate customer storage (by CUST ETD)</button>
+      <button class="btn" type="button" id="f-copy">Copy table for Excel</button>
     </div>
   </div>
   <div id="f-csum" class="csum" aria-live="polite" hidden></div>
   <div id="f-copyfallback"></div>
   <div class="scroll" id="f-tablewrap"></div>
-  <p class="total-note" style="margin-top:8px">ช่อง F/T และ CUST ETD แก้ได้ทีละตู้เพื่อลองคำนวณ (ลบค่าออกเพื่อกลับไปใช้ค่าจากไฟล์) · ค่าที่แก้จะไม่ถูกบันทึกกลับไปที่ไฟล์</p>`;
+  <p class="total-note" style="margin-top:8px">F/T and CUST ETD can be edited per container to try a calculation (clear the value to go back to the file) · edits are not written back to the files</p>`;
 
   out.querySelectorAll(".filt button").forEach(b=>b.onclick=()=>{AREA_FILTER=b.dataset.a; out.querySelectorAll(".filt button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderTable();});
   $("f-paid").onchange=e=>{ONLY_PAID=e.target.checked; renderTable();};
@@ -195,27 +195,27 @@ function renderCustSummary(){
   box.hidden=!CUST_CALC; if(!CUST_CALC) return;
   const rows=visibleRows(), done=rows.filter(r=>r.cStay!=null), missing=rows.length-done.length;
   const paid=done.filter(r=>r.cCharge>0), total=done.reduce((s,r)=>s+r.cCharge,0);
-  box.innerHTML=`<span class="label">ค่า Storage ลูกค้า (ตาม CUST ETD)</span><span class="amt">${money(total)} <small>THB</small></span>
-    <span class="total-note">${done.length} ตู้ที่คำนวณได้ · เสียค่า ${paid.length} ตู้${missing?` · <b class="miss">ไม่มี CUST ETD ${missing} ตู้</b> ใส่วันที่ในตารางเพื่อคำนวณ`:""}</span>`;
+  box.innerHTML=`<span class="label">Customer storage (by CUST ETD)</span><span class="amt">${money(total)} <small>THB</small></span>
+    <span class="total-note">${done.length} containers calculated · ${paid.length} charged${missing?` · <b class="miss">${missing} without CUST ETD</b>, enter a date in the table to include them`:""}</span>`;
 }
 function renderTable(){
   const rows=visibleRows(), wrap=$("f-tablewrap"); if(!wrap) return;
   renderCustSummary();
-  if(!rows.length){ wrap.innerHTML=`<p class="empty">ไม่มีตู้ที่ตรงกับตัวกรอง</p>`; return; }
+  if(!rows.length){ wrap.innerHTML=`<p class="empty">No containers match the filter</p>`; return; }
   const s=agg(rows), cTotal=rows.reduce((t,r)=>t+r.cCharge,0), cDays=rows.reduce((t,r)=>t+r.cDays,0);
   const iso=n=>n==null?"":isoDay(n);
-  const cHead = CUST_CALC ? `<th class="r cc">อยู่ถึง CUST ETD</th><th class="r cc">วันคิดเงินลูกค้า</th><th class="r cc">ค่า Storage ลูกค้า</th>` : "";
-  wrap.innerHTML=`<table class="grid"><thead><tr><th>Container</th><th>Loc</th><th>Booking</th><th>Shipper</th><th>Type</th><th></th><th>ตู้เข้า</th><th>ETD</th><th>CUST ETD</th><th class="r">อยู่</th><th class="r">F/T</th><th class="r">วันคิดเงิน</th><th class="r">ค่า Storage</th><th class="r">F/T ลูกค้า</th>${cHead}</tr></thead>
+  const cHead = CUST_CALC ? `<th class="r cc">Days to CUST ETD</th><th class="r cc">Customer chargeable days</th><th class="r cc">Customer storage</th>` : "";
+  wrap.innerHTML=`<table class="grid"><thead><tr><th>Container</th><th>Loc</th><th>Booking</th><th>Shipper</th><th>Type</th><th></th><th>Gate in</th><th>ETD</th><th>CUST ETD</th><th class="r">Days</th><th class="r">F/T</th><th class="r">Chargeable days</th><th class="r">Storage</th><th class="r">Customer F/T</th>${cHead}</tr></thead>
   <tbody>${rows.map(r=>`<tr class="${r.charge>0?"paid":""}"><td class="mono">${esc(r.cntr)}</td><td>${esc(r.loc)}</td><td class="mono">${esc(r.bkno)}</td>
     <td class="shp" title="${esc(r.shipper)}">${esc(r.shipper)}</td><td class="mono">${esc(r.tpsz)}</td>
     <td>${r.dg?'<span class="chip dg">DG</span>':""}${r.rf?'<span class="chip rf">RF</span>':""}</td>
     <td class="num">${fmtDay(r.din,true)}</td><td class="num">${fmtDay(r.etd,true)}</td>
-    <td><input class="cetd ${CUST_ETD_OVR.has(r.key)?"set":""} ${r.custEtd==null?"miss":""}" type="date" value="${iso(r.custEtd)}" data-k="${esc(r.key)}" aria-label="CUST ETD ${esc(r.cntr)}" title="${r.custEtdFile!=null?"จากไฟล์ "+fmtDay(r.custEtdFile):"ไฟล์ไม่มี CUST ETD"}"></td>
+    <td><input class="cetd ${CUST_ETD_OVR.has(r.key)?"set":""} ${r.custEtd==null?"miss":""}" type="date" value="${iso(r.custEtd)}" data-k="${esc(r.key)}" aria-label="CUST ETD ${esc(r.cntr)}" title="${r.custEtdFile!=null?"From file: "+fmtDay(r.custEtdFile):"No CUST ETD in the file"}"></td>
     <td class="r num">${r.stay??"–"}</td>
-    <td class="r"><input class="ftin ${r.ftOverride!=null||r.ftNote?"set":""}" type="number" min="0" step="1" value="${r.ft}" data-c="${esc(r.cntr)}" data-f="${esc(r.file)}" aria-label="F/T ${esc(r.cntr)}" title="${esc(r.ftNote||"ค่าเริ่มต้น "+r.ftDefault+" วัน")}"></td>
+    <td class="r"><input class="ftin ${r.ftOverride!=null||r.ftNote?"set":""}" type="number" min="0" step="1" value="${r.ft}" data-c="${esc(r.cntr)}" data-f="${esc(r.file)}" aria-label="F/T ${esc(r.cntr)}" title="${esc(r.ftNote||"Default "+r.ftDefault+" days")}"></td>
     <td class="r num">${r.days}</td><td class="r num amt">${money(r.charge)}</td><td class="r num">${r.custFt}</td>
     ${CUST_CALC?`<td class="r num cc">${r.cStay??"–"}</td><td class="r num cc">${r.cStay==null?"–":r.cDays}</td><td class="r num cc ${r.cCharge>0?"camt":""}">${r.cStay==null?"–":money(r.cCharge)}</td>`:""}</tr>`).join("")}</tbody>
-  <tfoot><tr><td colspan="11">${s.n} ตู้</td><td class="r num">${s.days}</td><td class="r num">${money(s.charge)}</td><td></td>${CUST_CALC?`<td></td><td class="r num">${cDays}</td><td class="r num">${money(cTotal)}</td>`:""}</tr></tfoot></table>`;
+  <tfoot><tr><td colspan="11">${s.n} containers</td><td class="r num">${s.days}</td><td class="r num">${money(s.charge)}</td><td></td>${CUST_CALC?`<td></td><td class="r num">${cDays}</td><td class="r num">${money(cTotal)}</td>`:""}</tr></tfoot></table>`;
   wrap.querySelectorAll(".ftin").forEach(inp=>inp.addEventListener("change",()=>{
     const r=allRows().find(x=>x.cntr===inp.dataset.c&&x.file===inp.dataset.f); if(!r) return;
     const v=inp.value.trim(); r.ftOverride = v===""||Number(v)===r.ftDefault ? null : Math.max(0,parseInt(v)||0);
@@ -239,7 +239,7 @@ function voyageSets(){
 }
 const CS_HEAD=["Container No.","Group","Location","Booking No.","Shipper","Org Shipper","RCVCD","POL","POD","TS PORT","Type Size","CGO TERM","DG","RF",
   "Vessel","Voyage","SVC","Size","Original Schedule","ETD","Vssl Delay","1st Date allow to return","Date In","Total Stay","Normal F/T Terminal",
-  "Total Storage Days","Total Storage Charge","Special F/T","HQ Ref No. / TML / APP BY","Free Time Customer","คืนก่อนเรือออก","Over F/T Customer",
+  "Total Storage Days","Total Storage Charge","Special F/T","HQ Ref No. / TML / APP BY","Free Time Customer","Return before ETD","Over F/T Customer",
   "Amount due to Customer","Collection","Amount due to HAL","Remark","SALESNM","CUST ETD","PICK UP","COMMON REMARKS","ROLL"];
 const serial = n => n==null ? null : n+25569;   // day number -> Excel date serial
 
@@ -269,11 +269,11 @@ function buildWorkbook(set){
   const hasC=r=>r.cStay!=null, custTotal=rows.reduce((t,r)=>t+(hasC(r)?r.cCharge:0),0), custDays=rows.reduce((t,r)=>t+(hasC(r)?r.cDays:0),0), noCetd=rows.filter(r=>!hasC(r)).length;
   const wb=XLSX.utils.book_new();
   // Summary
-  const sum=[["HAL Storage — สรุปค่า Storage"],[],
+  const sum=[["HAL Storage — Storage summary"],[],
     ["ETD",serial(r0.etd)],["SVC",r0.svc],["VSL",r0.vsl],["VOY",r0.voyNo],["POL",r0.pol],["LWharf",r0.lwharf],["Area",r0.area],["Terminal group",r0.group],[],
-    ["จำนวนตู้",s.n],["20'",s.c20],["40'",s.c40],["ตู้ที่เกิน F/T",s.over],["Storage Days",s.days],
-    ["Total Storage Charge",s.charge],["Amount due to Customer (ตาม CUST ETD)",custTotal],["Collection",rows.reduce((t,r)=>t+r.collect,0)],["Amount due to HAL",s.hal],[],
-    ["คำนวณเมื่อ",new Date().toLocaleString("th-TH")],["ไฟล์ต้นทาง",[...new Set(rows.map(r=>r.file))].join(", ")]].concat(noCetd?[["ไม่มี CUST ETD",`${noCetd} ตู้ (ไม่ได้คิดค่าลูกค้า)`]]:[]);
+    ["Containers",s.n],["20'",s.c20],["40'",s.c40],["Over F/T",s.over],["Storage Days",s.days],
+    ["Total Storage Charge",s.charge],["Amount due to Customer (by CUST ETD)",custTotal],["Collection",rows.reduce((t,r)=>t+r.collect,0)],["Amount due to HAL",s.hal],[],
+    ["Calculated at",new Date().toLocaleString("en-GB")],["Source files",[...new Set(rows.map(r=>r.file))].join(", ")]].concat(noCetd?[["No CUST ETD",`${noCetd} containers (no customer charge)`]]:[]);
   const ws1=XLSX.utils.aoa_to_sheet(sum);
   if(ws1.B3) ws1.B3.z="dd/mm/yyyy";
   ["B17","B18","B19","B20"].forEach(a=>{ if(ws1[a]) ws1[a].z="#,##0"; });
@@ -285,8 +285,8 @@ function buildWorkbook(set){
     return [r.cntr,r.group,r.loc,r.bkno,b[26]??"",b[27]??"",b[4]??"",b[14]??"",b[18]??"",b[25]??"",r.tpsz,b[84]??"",r.dg?"DG":"",r.rf?"RF":"",
       r.vessel,r.voy,r.svc??"",r.size,serial(r.orig),serial(r.etd),(r.orig!=null&&r.etd!=null)?r.etd-r.orig:null,serial(r.allow),serial(r.din),r.stay,r.ft,
       r.days,r.charge,r.spft||null,r.tml||null,r.custFt,(r.allow!=null&&r.etd!=null)?r.etd-r.allow+1:null,hasC(r)?r.cDays:null,
-      hasC(r)?r.cCharge:null,r.collect||null,r.charge-r.collect,[r.ftOverride!=null?`F/T แก้ในแอพ (เดิม ${r.ftDefault})`:r.ftNote, hasC(r)?null:"ไม่มี CUST ETD"].filter(Boolean).join(" · ")||null,b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
-  const tot=["TOTAL",`${s.n} ตู้`]; tot[25]=s.days; tot[26]=s.charge; tot[31]=custDays; tot[32]=custTotal; tot[34]=s.hal;
+      hasC(r)?r.cCharge:null,r.collect||null,r.charge-r.collect,[r.ftOverride!=null?`F/T edited in app (was ${r.ftDefault})`:r.ftNote, hasC(r)?null:"No CUST ETD"].filter(Boolean).join(" · ")||null,b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
+  const tot=["TOTAL",`${s.n} containers`]; tot[25]=s.days; tot[26]=s.charge; tot[31]=custDays; tot[32]=custTotal; tot[34]=s.hal;
   const ws2=XLSX.utils.aoa_to_sheet([CS_HEAD,...data,tot]);
   const dateCols=[18,19,21,22,37], moneyCols=[26,32,33,34];
   for(let i=1;i<=data.length+1;i++){
@@ -327,15 +327,15 @@ async function exportSets(sets){
       try{ await dl.save({filename:name,data:new Blob([buf])}); ok++; last=name; }
       catch(e){
         const c=e&&e.code;
-        if(c==="declined"){ st.textContent=`ยกเลิกการบันทึก ${name}`; continue; }
-        if(c==="rate_limited"){ st.textContent="มีหน้าต่างบันทึกเปิดค้างอยู่ ลองอีกครั้งในอีกสักครู่"; return; }
-        st.textContent="หน้านี้บันทึกไฟล์ไม่ได้ ลองเปิดแอพจากไฟล์ storage_app.html ในเครื่อง"; return;
+        if(c==="declined"){ st.textContent=`Save cancelled: ${name}`; continue; }
+        if(c==="rate_limited"){ st.textContent="A save dialog is already open. Try again in a moment"; return; }
+        st.textContent="This page cannot save files. Open the app on GitHub Pages instead"; return;
       }
     } else if(!inViewer){
       XLSX.writeFile(buildWorkbook(set),name); ok++; last=name;   // opened as a local file
-    } else { st.textContent="หน้านี้บันทึกไฟล์ไม่ได้ ลองเปิดแอพจากไฟล์ storage_app.html ในเครื่อง"; return; }
+    } else { st.textContent="This page cannot save files. Open the app on GitHub Pages instead"; return; }
   }
-  if(ok) st.textContent = ok===1 ? `บันทึกแล้ว: ${last}` : `บันทึกแล้ว ${ok} ไฟล์`;
+  if(ok) st.textContent = ok===1 ? `Saved: ${last}` : `Saved ${ok} files`;
 }
 
 function copyTable(){
@@ -343,7 +343,7 @@ function copyTable(){
   const lines=[head.join("\t")].concat(visibleRows().map(r=>[r.cntr,r.loc,r.area,r.bkno,r.shipper,r.tpsz,r.dg?"DG":"",r.rf?"RF":"",r.vessel,r.voy,
     fmtDay(r.din),fmtDay(r.etd),r.stay??"",r.ft,r.days,r.charge,r.custFt,fmtDay(r.custEtd),r.cStay??"",r.cStay==null?"":r.cDays,r.cStay==null?"":r.cCharge,r.file].join("\t")));
   const text=lines.join("\n"), btn=$("f-copy");
-  const fallback=()=>{ $("f-copyfallback").innerHTML=`<textarea class="copybox" id="f-copytext" aria-label="ข้อมูลตาราง" readonly></textarea>`; const t=$("f-copytext"); t.value=text; t.select(); btn.textContent="เลือกข้อความแล้ว กด Ctrl+C"; };
-  try{ navigator.clipboard.writeText(text).then(()=>{ btn.textContent="คัดลอกแล้ว"; setTimeout(()=>btn.textContent="คัดลอกตารางไปวาง Excel",1800); }, fallback); }
+  const fallback=()=>{ $("f-copyfallback").innerHTML=`<textarea class="copybox" id="f-copytext" aria-label="Table data" readonly></textarea>`; const t=$("f-copytext"); t.value=text; t.select(); btn.textContent="Text selected, press Ctrl+C"; };
+  try{ navigator.clipboard.writeText(text).then(()=>{ btn.textContent="Copied"; setTimeout(()=>btn.textContent="Copy table for Excel",1800); }, fallback); }
   catch(e){ fallback(); }
 }

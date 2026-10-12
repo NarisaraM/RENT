@@ -39,8 +39,8 @@ const GROUP_OF_LOC = {LCH04:"G1",BKK01:"G3",BKK04:"G3",BKK02:"G4"};
 const TERMINAL_FT = {LCH01:7,LCH02:7,LCH03:7,LCH04:7,LCH05:7,LCH06:7,LCH08:7,LCH09:7,LCH10:7,BKK02:5};
 const GROUP_INFO = {
   G1:{title:"LCMT",locs:"LCH04"}, G2:{title:"ESCO · TIPS · LCIT · Hutchison",locs:"LCH01 02 03 05 06 08 09 10"},
-  G3:{title:"PAT",locs:"BKK01 Terminal 2 · BKK04 Terminal 1"}, G4:{title:"Unithai (UTCT)",locs:"BKK02 · อัตราเดียว"},
-  CUST:{title:"ลูกค้า (คืนตู้ก่อนกำหนด)",locs:"ใช้ทุก terminal"}
+  G3:{title:"PAT",locs:"BKK01 Terminal 2 · BKK04 Terminal 1"}, G4:{title:"Unithai (UTCT)",locs:"BKK02 · single rate"},
+  CUST:{title:"Customer (early return)",locs:"All terminals"}
 };
 
 const groupOf = loc => GROUP_OF_LOC[loc] || "G2";
@@ -100,7 +100,7 @@ function toDay(v){
 function fmtDay(n, short){ if(n==null) return "–"; const d=new Date(n*DAY);
   const dd=String(d.getUTCDate()).padStart(2,"0"), mm=String(d.getUTCMonth()+1).padStart(2,"0");
   return short ? `${dd}/${mm}` : `${dd}/${mm}/${d.getUTCFullYear()}`; }
-const TH_DOW=["อา","จ","อ","พ","พฤ","ศ","ส"];
+const TH_DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const dow = n => TH_DOW[new Date(n*DAY).getUTCDay()];
 const money = n => Math.round(n).toLocaleString("en-US");
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -117,7 +117,7 @@ const LOC_NAME = code => (LOCS.find(l=>l.code===code)||{}).name || code || "";
 const voyName = r0 => exportName(r0).replace(/\.xlsx$/,"");
 const docId = name => name.replace(/[^A-Za-z0-9_.~:@+-]/g,"-").slice(0,190) || "voyage";
 const monthOf = v => (v.meta.etd||"").slice(0,7);
-const TH_MONTH=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-const monthLabel = m => m ? `${TH_MONTH[+m.slice(5,7)-1]} ${m.slice(0,4)}` : "ไม่มี ETD";
+const TH_MONTH=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const monthLabel = m => m ? `${TH_MONTH[+m.slice(5,7)-1]} ${m.slice(0,4)}` : "No ETD";
 const etdDay = v => v.meta.etd ? dayFromISO(v.meta.etd) : null;
 const sumOf = vs => vs.reduce((t,v)=>{ for(const k in v.sum) t[k]=(t[k]||0)+(v.sum[k]||0); return t; },{});

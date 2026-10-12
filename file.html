@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>HAL Storage · ไฟล์เรือ</title>
+<title>HAL Storage · Vessel Files</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/app.css?v=20261013g">
+<link rel="stylesheet" href="assets/app.css?v=20261013h">
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body class="wide">
@@ -15,30 +15,30 @@
   <div class="hero-card">
     <div class="hero-top">
       <div class="hero-copy">
-        <span class="hero-pill"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM8 5.4v8.4M5 7.6h6M2.6 9.6c.4 2.6 2.6 4.2 5.4 4.2s5-1.6 5.4-4.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Container Storage · ฝั่งลูกค้า</span>
+        <span class="hero-pill"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM8 5.4v8.4M5 7.6h6M2.6 9.6c.4 2.6 2.6 4.2 5.4 4.2s5-1.6 5.4-4.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Container Storage · Customer</span>
         <h1>HAL Storage Calculator</h1>
-        <p>คำนวณค่าฝากตู้ที่ terminal ตามตาราง Customer · BKK · UTCT · LCH</p>
+        <p>Customer storage charges at the terminal, per the Customer tariff · BKK · UTCT · LCH</p>
       </div>
       <div class="hero-brand">
-        <img class="brand-logo" src="logo.png?v=20261013g" alt="Heung-A Line 興亞LINE株式會社" width="234" height="53">
+        <img class="brand-logo" src="logo.png?v=20261013h" alt="Heung-A Line 興亞LINE株式會社" width="234" height="53">
         <span class="hero-clock" id="hero-clock">&nbsp;</span>
       </div>
     </div>
     <div class="hero-scene" id="hero-scene"></div>
   </div>
-  <nav aria-label="หน้า">
-    <a href="./">คำนวณด่วน</a>
-    <a href="file.html" aria-current="page">คำนวณจากไฟล์เรือ</a>
+  <nav aria-label="Pages">
+    <a href="./">Quick Calculator</a>
+    <a href="file.html" aria-current="page">Vessel Files</a>
     <a href="tariff.html">Tariff</a>
   </nav>
 </header>
 
 <main>
-<div class="page-h"><h2>คำนวณจากไฟล์เรือ</h2><p>อ่านไฟล์ LOAD / BKG / GATE ของเที่ยวเรือ คำนวณรายตู้ แล้ว Export เป็น .xlsx</p></div>
+<div class="page-h"><h2>Vessel Files</h2><p>Read a voyage's LOAD / BKG / GATE files, calculate per container, and export to .xlsx</p></div>
 <section id="view-file">
   <label class="drop" id="drop" for="f-input">
-    <strong>วางไฟล์ของเที่ยวเรือที่นี่ หรือคลิกเพื่อเลือก</strong>
-    <p>ใส่ไฟล์จากระบบครบ 3 ไฟล์ (LOAD, BKG, GATE) เช่น 9-29-SWAL-2608N-LCH-LOAD.xls เลือกพร้อมกันได้ ไม่ต้องเรียงลำดับ ใส่ไฟล์ TEMPLATE ที่กรอกแล้วก็ได้ · ไฟล์ถูกอ่านในเครื่องนี้เท่านั้น ไม่ถูกอัปโหลดไปที่ไหน</p>
+    <strong>Drop the voyage files here, or click to choose</strong>
+    <p>Add all 3 system files (LOAD, BKG, GATE), e.g. 9-29-SWAL-2608N-LCH-LOAD.xls. Select them together in any order, or use a filled-in TEMPLATE file · Files are read on this computer only and are never uploaded</p>
     <input type="file" id="f-input" accept=".xls,.xlsx,.xlsm" multiple hidden>
   </label>
   <div class="files" id="f-list"></div>
@@ -47,8 +47,8 @@
 </section>
 </main>
 
-<script src="assets/core.js?v=20261013g"></script>
-<script src="assets/hero.js?v=20261013g"></script>
-<script src="assets/file.js?v=20261013g"></script>
+<script src="assets/core.js?v=20261013h"></script>
+<script src="assets/hero.js?v=20261013h"></script>
+<script src="assets/file.js?v=20261013h"></script>
 </body>
 </html>
