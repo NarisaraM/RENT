@@ -184,3 +184,14 @@ tr.detail .scroll{max-height:420px;overflow:auto}
 .notes{margin-top:16px;padding:16px 18px;display:grid;gap:6px;font-size:13.5px}
 .notes ul{margin:0;padding-left:18px;display:grid;gap:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* CUST ETD (customer side) */
+.cetd{width:138px;min-height:30px;padding:3px 6px;background:var(--sunken);border:1px solid var(--line);border-radius:4px;font-family:var(--f-mono);font-size:12.5px}
+.cetd.set{border-color:var(--sea);background:var(--sea-soft);color:var(--head)}
+.cetd.miss{border-color:var(--accent);border-style:dashed}
+.grid th.cc{background:var(--sea-soft);color:var(--head)}
+.grid td.cc{background:var(--sunken)}
+.grid td.camt{color:var(--accent-ink);font-weight:600}
+.csum{margin:0 0 12px;padding:14px 16px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r)}
+.csum .amt{font-family:var(--f-mono);font-size:24px;font-weight:600;color:var(--head)}
+.csum .amt small{font-size:13px;color:var(--muted);font-weight:500}
+.csum .miss{color:var(--accent-ink)}

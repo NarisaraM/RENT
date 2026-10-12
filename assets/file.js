@@ -4,6 +4,8 @@
 let SOURCES=[];            // {name, kind, loading, booking, gate, manual, info, error}
 let ROWS=[], WARNINGS=[];
 const OVERRIDES=new Map(); // `${file}|${cntr}` -> F/T ที่แก้ในตาราง
+const CUST_ETD_OVR=new Map(); // `${file}|${cntr}` -> CUST ETD (day number) ที่แก้ในตาราง
+let CUST_CALC=false;          // กดปุ่มคำนวณค่า Storage ลูกค้าแล้ว
 let AREA_FILTER="ALL", ONLY_PAID=false, QUERY="";
 let BKG_HEAD=[], GATE_HEAD=[];  // header rows kept for export
 const KIND_LABEL={LOAD:"Loading",BKG:"Booking",GATE:"Gate move",TEMPLATE:"Template"};
@@ -83,7 +85,7 @@ function recompute(){
       const key=`${s.name}|${cntr}`;
       const row={key,file:s.name,cntr,loc,area:areaOf(loc),group:groupOf(loc),bkno,shipper:b[26]||r[22]||"",tpsz,size,dg,rf,
         vessel:r[2],voy:r[3],svc,etd,din,stay:(etd!=null&&din!=null)?etd-din+1:null,
-        ftDefault,ftNote,ftOverride:OVERRIDES.has(key)?OVERRIDES.get(key):null,custFt:custFt(loc,dg,rf,svc),
+        ftDefault,ftNote,ftOverride:OVERRIDES.has(key)?OVERRIDES.get(key):null,custFt:custFtOf(dg?"DG":rf?"RF":"GP"),custEtdFile:toDay(b[100]),custEtd:CUST_ETD_OVR.has(key)?CUST_ETD_OVR.get(key):toDay(b[100]),
         custAmt:tierCharge(`CUST|${dg?"DG":"GP"}|${size}`,over),collect:m.collect||0,
         vsl:b[12]||r[2]||"",voyNo:b[13]||r[3]||"",pol:b[14]||r[7]||"",lwharf:b[15]||r[27]||loc||"",
         orig:toDay(m.orig),allow,over,spft:m.spft||0,tml:m.tml||"",_r:r,_b:b,_g:g||null};
@@ -96,6 +98,10 @@ function calcRow(r){
   r.ft = r.ftOverride ?? r.ftDefault;
   r.days = r.stay==null ? 0 : Math.max(r.stay-r.ft,0);
   r.charge = tierCharge(`${r.group}|${r.dg?"DG":"GP"}|${r.size}`, r.days);
+  // ฝั่งลูกค้า: นับวันถึง CUST ETD แทน ETD เรือ คิดตามตาราง Customer ใน COST-RENT (+ Electric charge ถ้าเป็น RF)
+  r.cStay = (r.custEtd!=null&&r.din!=null) ? r.custEtd-r.din+1 : null;
+  r.cDays = r.cStay==null ? 0 : Math.max(r.cStay-r.custFt,0);
+  r.cCharge = custCharge(custKey(r.dg?"DG":"GP",r.size), r.cDays) + (r.rf ? r.cDays*ELECTRIC_RF[r.size] : 0);
 }
 
 async function addFiles(list){
@@ -124,7 +130,7 @@ function renderFiles(){
   $("f-list").innerHTML = SOURCES.length ? slots + SOURCES.map((s,i)=>`<span class="chip ${s.error?"dg":"ok"}" title="${esc(s.error||"")}"><b>${s.kind||"?"}</b> ${esc(s.name)}${s.info?" · "+esc(s.info):""}<button type="button" class="x" data-i="${i}" aria-label="เอาไฟล์ ${esc(s.name)} ออก">×</button></span>`).join("")
     + `<button class="btn" id="f-clear" type="button">ล้างทั้งหมด</button>` : "";
   $("f-list").querySelectorAll(".x").forEach(b=>b.onclick=()=>{ SOURCES.splice(+b.dataset.i,1); renderFiles(); });
-  if($("f-clear")) $("f-clear").onclick=()=>{SOURCES=[];OVERRIDES.clear();renderFiles();};
+  if($("f-clear")) $("f-clear").onclick=()=>{SOURCES=[];OVERRIDES.clear();CUST_ETD_OVR.clear();CUST_CALC=false;renderFiles();};
   const w=SOURCES.filter(s=>s.error).map(s=>`${s.name} — ${s.error}`).concat(WARNINGS);
   $("f-warn").innerHTML = w.length ? `<div class="warns"><strong>ข้อควรตรวจสอบ</strong>${w.map(x=>`<span>${esc(x)}</span>`).join("")}</div>` : "";
   renderResults();
@@ -160,17 +166,20 @@ function renderResults(){
       <div class="filt" role="group" aria-label="กรองพื้นที่">${["ALL",...areas].map(a=>`<button type="button" data-a="${a}" aria-pressed="${AREA_FILTER===a}">${a==="ALL"?"ทั้งหมด":a}</button>`).join("")}</div>
       <label class="check"><input type="checkbox" id="f-paid" ${ONLY_PAID?"checked":""}> เฉพาะที่มีค่า</label>
       <input type="search" id="f-q" placeholder="ค้นหาตู้ / booking / shipper" value="${esc(QUERY)}">
+      <button class="btn primary" type="button" id="f-ccalc">คำนวณค่า Storage ลูกค้า (ตาม CUST ETD)</button>
       <button class="btn" type="button" id="f-copy">คัดลอกตารางไปวาง Excel</button>
     </div>
   </div>
+  <div id="f-csum" class="csum" aria-live="polite" hidden></div>
   <div id="f-copyfallback"></div>
   <div class="scroll" id="f-tablewrap"></div>
-  <p class="total-note" style="margin-top:8px">ช่อง F/T แก้ได้ทีละตู้เพื่อลองคำนวณ (ลบค่าออกเพื่อกลับไปใช้ค่าเดิม) · ค่าที่แก้จะไม่ถูกบันทึกกลับไปที่ไฟล์</p>`;
+  <p class="total-note" style="margin-top:8px">ช่อง F/T และ CUST ETD แก้ได้ทีละตู้เพื่อลองคำนวณ (ลบค่าออกเพื่อกลับไปใช้ค่าจากไฟล์) · ค่าที่แก้จะไม่ถูกบันทึกกลับไปที่ไฟล์</p>`;
 
   out.querySelectorAll(".filt button").forEach(b=>b.onclick=()=>{AREA_FILTER=b.dataset.a; out.querySelectorAll(".filt button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderTable();});
   $("f-paid").onchange=e=>{ONLY_PAID=e.target.checked; renderTable();};
   $("f-q").oninput=e=>{QUERY=e.target.value; renderTable();};
   $("f-copy").onclick=copyTable;
+  $("f-ccalc").onclick=()=>{ CUST_CALC=true; renderTable(); };
   out.querySelectorAll(".xbtn").forEach(b=>b.onclick=()=>exportSets(voyageSets().filter(v=>v.key===b.dataset.k)));
   $("x-all").onclick=()=>exportSets(voyageSets());
   out.querySelectorAll(".sbtn").forEach(b=>b.onclick=()=>saveSets(voyageSets().filter(v=>v.key===b.dataset.k)));
@@ -185,23 +194,44 @@ function visibleRows(){
     &&(!q||[r.cntr,r.bkno,r.shipper].some(v=>String(v||"").toLowerCase().includes(q))))
     .sort((a,b)=>b.charge-a.charge||String(a.cntr).localeCompare(b.cntr));
 }
+function renderCustSummary(){
+  const box=$("f-csum"); if(!box) return;
+  box.hidden=!CUST_CALC; if(!CUST_CALC) return;
+  const rows=visibleRows(), done=rows.filter(r=>r.cStay!=null), missing=rows.length-done.length;
+  const paid=done.filter(r=>r.cCharge>0), total=done.reduce((s,r)=>s+r.cCharge,0);
+  box.innerHTML=`<span class="label">ค่า Storage ลูกค้า (ตาม CUST ETD)</span><span class="amt">${money(total)} <small>THB</small></span>
+    <span class="total-note">${done.length} ตู้ที่คำนวณได้ · เสียค่า ${paid.length} ตู้${missing?` · <b class="miss">ไม่มี CUST ETD ${missing} ตู้</b> ใส่วันที่ในตารางเพื่อคำนวณ`:""}</span>`;
+}
 function renderTable(){
   const rows=visibleRows(), wrap=$("f-tablewrap"); if(!wrap) return;
+  renderCustSummary();
   if(!rows.length){ wrap.innerHTML=`<p class="empty">ไม่มีตู้ที่ตรงกับตัวกรอง</p>`; return; }
-  const s=agg(rows);
-  wrap.innerHTML=`<table class="grid"><thead><tr><th>Container</th><th>Loc</th><th>Booking</th><th>Shipper</th><th>Type</th><th></th><th>ตู้เข้า</th><th>ETD</th><th class="r">อยู่</th><th class="r">F/T</th><th class="r">วันคิดเงิน</th><th class="r">ค่า Storage</th><th class="r">F/T ลูกค้า</th></tr></thead>
+  const s=agg(rows), cTotal=rows.reduce((t,r)=>t+r.cCharge,0), cDays=rows.reduce((t,r)=>t+r.cDays,0);
+  const iso=n=>n==null?"":isoDay(n);
+  const cHead = CUST_CALC ? `<th class="r cc">อยู่ถึง CUST ETD</th><th class="r cc">วันคิดเงินลูกค้า</th><th class="r cc">ค่า Storage ลูกค้า</th>` : "";
+  wrap.innerHTML=`<table class="grid"><thead><tr><th>Container</th><th>Loc</th><th>Booking</th><th>Shipper</th><th>Type</th><th></th><th>ตู้เข้า</th><th>ETD</th><th>CUST ETD</th><th class="r">อยู่</th><th class="r">F/T</th><th class="r">วันคิดเงิน</th><th class="r">ค่า Storage</th><th class="r">F/T ลูกค้า</th>${cHead}</tr></thead>
   <tbody>${rows.map(r=>`<tr class="${r.charge>0?"paid":""}"><td class="mono">${esc(r.cntr)}</td><td>${esc(r.loc)}</td><td class="mono">${esc(r.bkno)}</td>
     <td class="shp" title="${esc(r.shipper)}">${esc(r.shipper)}</td><td class="mono">${esc(r.tpsz)}</td>
     <td>${r.dg?'<span class="chip dg">DG</span>':""}${r.rf?'<span class="chip rf">RF</span>':""}</td>
-    <td class="num">${fmtDay(r.din,true)}</td><td class="num">${fmtDay(r.etd,true)}</td><td class="r num">${r.stay??"–"}</td>
+    <td class="num">${fmtDay(r.din,true)}</td><td class="num">${fmtDay(r.etd,true)}</td>
+    <td><input class="cetd ${CUST_ETD_OVR.has(r.key)?"set":""} ${r.custEtd==null?"miss":""}" type="date" value="${iso(r.custEtd)}" data-k="${esc(r.key)}" aria-label="CUST ETD ${esc(r.cntr)}" title="${r.custEtdFile!=null?"จากไฟล์ "+fmtDay(r.custEtdFile):"ไฟล์ไม่มี CUST ETD"}"></td>
+    <td class="r num">${r.stay??"–"}</td>
     <td class="r"><input class="ftin ${r.ftOverride!=null||r.ftNote?"set":""}" type="number" min="0" step="1" value="${r.ft}" data-c="${esc(r.cntr)}" data-f="${esc(r.file)}" aria-label="F/T ${esc(r.cntr)}" title="${esc(r.ftNote||"ค่าเริ่มต้น "+r.ftDefault+" วัน")}"></td>
-    <td class="r num">${r.days}</td><td class="r num amt">${money(r.charge)}</td><td class="r num">${r.custFt}</td></tr>`).join("")}</tbody>
-  <tfoot><tr><td colspan="10">${s.n} ตู้</td><td class="r num">${s.days}</td><td class="r num">${money(s.charge)}</td><td></td></tr></tfoot></table>`;
+    <td class="r num">${r.days}</td><td class="r num amt">${money(r.charge)}</td><td class="r num">${r.custFt}</td>
+    ${CUST_CALC?`<td class="r num cc">${r.cStay??"–"}</td><td class="r num cc">${r.cStay==null?"–":r.cDays}</td><td class="r num cc ${r.cCharge>0?"camt":""}">${r.cStay==null?"–":money(r.cCharge)}</td>`:""}</tr>`).join("")}</tbody>
+  <tfoot><tr><td colspan="11">${s.n} ตู้</td><td class="r num">${s.days}</td><td class="r num">${money(s.charge)}</td><td></td>${CUST_CALC?`<td></td><td class="r num">${cDays}</td><td class="r num">${money(cTotal)}</td>`:""}</tr></tfoot></table>`;
   wrap.querySelectorAll(".ftin").forEach(inp=>inp.addEventListener("change",()=>{
     const r=allRows().find(x=>x.cntr===inp.dataset.c&&x.file===inp.dataset.f); if(!r) return;
     const v=inp.value.trim(); r.ftOverride = v===""||Number(v)===r.ftDefault ? null : Math.max(0,parseInt(v)||0);
     if(r.ftOverride==null) OVERRIDES.delete(r.key); else OVERRIDES.set(r.key,r.ftOverride);
     calcRow(r); renderResults();
+  }));
+  wrap.querySelectorAll(".cetd").forEach(inp=>inp.addEventListener("change",()=>{
+    const r=allRows().find(x=>x.key===inp.dataset.k); if(!r) return;
+    const d=inp.value ? dayFromISO(inp.value) : null;
+    if(inp.value && !inp.validity.valid) return;   // วันที่ยังพิมพ์ไม่ครบ
+    if(d==null || d===r.custEtdFile){ CUST_ETD_OVR.delete(r.key); r.custEtd=r.custEtdFile; } else { CUST_ETD_OVR.set(r.key,d); r.custEtd=d; }
+    calcRow(r); renderTable();
   }));
 }
 
@@ -257,10 +287,10 @@ function buildWorkbook(set){
     return [r.cntr,r.group,r.loc,r.bkno,b[26]??"",b[27]??"",b[4]??"",b[14]??"",b[18]??"",b[25]??"",r.tpsz,b[84]??"",r.dg?"DG":"",r.rf?"RF":"",
       r.vessel,r.voy,r.svc??"",r.size,serial(r.orig),serial(r.etd),(r.orig!=null&&r.etd!=null)?r.etd-r.orig:null,serial(r.allow),serial(r.din),r.stay,r.ft,
       r.days,r.charge,r.spft||null,r.tml||null,r.custFt,(r.allow!=null&&r.etd!=null)?r.etd-r.allow+1:null,r.over,
-      r.custAmt,r.collect||null,r.charge-r.collect,r.ftOverride!=null?`F/T แก้ในแอพ (เดิม ${r.ftDefault})`:(r.ftNote||null),b[39]??"",b[100]??"",b[62]??"",b[51]??"",b[102]??""]; });
+      r.custAmt,r.collect||null,r.charge-r.collect,r.ftOverride!=null?`F/T แก้ในแอพ (เดิม ${r.ftDefault})`:(r.ftNote||null),b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
   const tot=["TOTAL",`${s.n} ตู้`]; tot[25]=s.days; tot[26]=s.charge; tot[32]=s.cust; tot[34]=s.hal;
   const ws2=XLSX.utils.aoa_to_sheet([CS_HEAD,...data,tot]);
-  const dateCols=[18,19,21,22], moneyCols=[26,32,33,34];
+  const dateCols=[18,19,21,22,37], moneyCols=[26,32,33,34];
   for(let i=1;i<=data.length+1;i++){
     dateCols.forEach(c=>{ const a=XLSX.utils.encode_cell({r:i,c}); if(ws2[a]&&ws2[a].t==="n") ws2[a].z="dd/mm/yyyy"; });
     moneyCols.forEach(c=>{ const a=XLSX.utils.encode_cell({r:i,c}); if(ws2[a]&&ws2[a].t==="n") ws2[a].z="#,##0"; });
@@ -311,9 +341,9 @@ async function exportSets(sets){
 }
 
 function copyTable(){
-  const head=["Container","Location","Area","Booking","Shipper","Type","DG","RF","Vessel","Voyage","Date In","ETD","Total Stay","F/T","Storage Days","Storage Charge","Customer F/T","File"];
+  const head=["Container","Location","Area","Booking","Shipper","Type","DG","RF","Vessel","Voyage","Date In","ETD","Total Stay","F/T","Storage Days","Storage Charge","Customer F/T","CUST ETD","Stay to CUST ETD","Customer Storage Days","Customer Storage Charge","File"];
   const lines=[head.join("\t")].concat(visibleRows().map(r=>[r.cntr,r.loc,r.area,r.bkno,r.shipper,r.tpsz,r.dg?"DG":"",r.rf?"RF":"",r.vessel,r.voy,
-    fmtDay(r.din),fmtDay(r.etd),r.stay??"",r.ft,r.days,r.charge,r.custFt,r.file].join("\t")));
+    fmtDay(r.din),fmtDay(r.etd),r.stay??"",r.ft,r.days,r.charge,r.custFt,fmtDay(r.custEtd),r.cStay??"",r.cStay==null?"":r.cDays,r.cStay==null?"":r.cCharge,r.file].join("\t")));
   const text=lines.join("\n"), btn=$("f-copy");
   const fallback=()=>{ $("f-copyfallback").innerHTML=`<textarea class="copybox" id="f-copytext" aria-label="ข้อมูลตาราง" readonly></textarea>`; const t=$("f-copytext"); t.value=text; t.select(); btn.textContent="เลือกข้อความแล้ว กด Ctrl+C"; };
   try{ navigator.clipboard.writeText(text).then(()=>{ btn.textContent="คัดลอกแล้ว"; setTimeout(()=>btn.textContent="คัดลอกตารางไปวาง Excel",1800); }, fallback); }
