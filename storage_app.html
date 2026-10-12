@@ -64,6 +64,9 @@ input[type=date],input[type=number],input[type=search],select{width:100%;backgro
 .seg label:first-of-type{border-left:0}
 .seg input:checked+label{background:var(--head);color:var(--head-ink);font-weight:600}
 .seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-2px}
+.seg.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg.g3 label:nth-of-type(3n+1){border-left:0}
+.seg.g3 label:nth-of-type(n+4){border-top:1px solid var(--line)}
 .divider{border:0;border-top:1px dashed var(--line);margin:2px 0}
 
 .result{display:grid;gap:16px;min-width:0}
@@ -223,10 +226,13 @@ tr.detail .scroll{max-height:420px;overflow:auto}
     </div>
     <div class="field">
       <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">ประเภทสินค้า</span>
-      <div class="seg" role="radiogroup" aria-label="ประเภทสินค้า">
+      <div class="seg g3" role="radiogroup" aria-label="ประเภทสินค้า">
         <input type="radio" name="cargo" id="q-gp" value="GP" checked><label for="q-gp">GP</label>
         <input type="radio" name="cargo" id="q-rf" value="RF"><label for="q-rf">RF</label>
         <input type="radio" name="cargo" id="q-dg" value="DG"><label for="q-dg">DG</label>
+        <input type="radio" name="cargo" id="q-oog" value="OOG"><label for="q-oog">OOG</label>
+        <input type="radio" name="cargo" id="q-tk" value="TK"><label for="q-tk">TK</label>
+        <input type="radio" name="cargo" id="q-flexi" value="FLEXIBAG"><label for="q-flexi">FLEXIBAG</label>
       </div>
     </div>
     <div class="field">
@@ -240,16 +246,8 @@ tr.detail .scroll{max-height:420px;overflow:auto}
     </div>
     <div class="row2">
       <div class="field"><label for="q-qty">จำนวนตู้</label><input type="number" id="q-qty" min="1" step="1" value="1" inputmode="numeric"></div>
-      <div class="field"><label for="q-sft">Special F/T (TML)</label><input type="number" id="q-sft" min="0" step="1" placeholder="ไม่มี" inputmode="numeric"></div>
+      <div class="field"><label for="q-sft">Free Time</label><input type="number" id="q-sft" min="0" step="1" placeholder="ไม่มี" inputmode="numeric"></div>
     </div>
-    <hr class="divider">
-    <div class="row2">
-      <div class="field"><label for="q-svc">Service</label>
-        <select id="q-svc"><option value="">อื่น ๆ</option><option value="KTS">KTS</option><option value="KHS">KHS</option></select>
-      </div>
-      <div class="field"><label for="q-allow">วันแรกที่ให้คืนตู้</label><input type="date" id="q-allow"></div>
-    </div>
-    <small style="color:var(--muted);font-size:12px">Service และวันแรกที่ให้คืนตู้ใช้คำนวณฝั่งลูกค้า (ไม่บังคับ)</small>
   </form>
 
   <div class="result">
@@ -275,10 +273,7 @@ tr.detail .scroll{max-height:420px;overflow:auto}
       <span class="label">ฝั่งลูกค้า</span>
       <div class="cust-grid">
         <div><span class="total-note">Free time ลูกค้า</span><span class="v" id="c-ft">–</span></div>
-        <div><span class="total-note">คืนตู้ก่อนวันที่ให้คืน</span><span class="v" id="c-early">–</span></div>
-        <div><span class="total-note">ค่าที่เก็บลูกค้าได้</span><span class="v" id="c-amt">–</span></div>
       </div>
-      <span class="total-note" id="c-note"></span>
     </article>
 
     <article class="panel strip">
@@ -353,19 +348,20 @@ const TIERS = {
   "CUST|DG|20'":[[0,0,900],[5,3360,1800],[9,9135,3600]],
   "CUST|DG|40'":[[0,0,1800],[9,6720,3600],[9,18270,7200]],
 };
+// รายชื่อ terminal ตามชีท Charge ในไฟล์ COST-RENT.xlsx (code ใช้ภายในสำหรับอ่านไฟล์เรือและเลือกอัตรา)
 const LOCS = [
-  {code:"BKK01",name:"PAT / Terminal 2",area:"BKK"},
   {code:"BKK04",name:"PAT / Terminal 1",area:"BKK"},
-  {code:"BKK02",name:"Unithai",area:"UTCT"},
+  {code:"BKK01",name:"PAT / Terminal 2",area:"BKK"},
+  {code:"BKK02",name:"UNITHAI",area:"UTCT"},
   {code:"LCH01",name:"ESCO B3",area:"LCH"},
   {code:"LCH02",name:"Hutchison A2",area:"LCH"},
   {code:"LCH03",name:"TIPS B4",area:"LCH"},
   {code:"LCH04",name:"LCMT A0/B1",area:"LCH"},
   {code:"LCH05",name:"LCIT B5",area:"LCH"},
+  {code:"LCH10",name:"LCIT C3",area:"LCH"},
   {code:"LCH06",name:"Hutchison A3",area:"LCH"},
   {code:"LCH08",name:"Hutchison C1C2",area:"LCH"},
   {code:"LCH09",name:"Hutchison D1",area:"LCH"},
-  {code:"LCH10",name:"LCIT C3",area:"LCH"},
 ];
 const GROUP_OF_LOC = {LCH04:"G1",BKK01:"G3",BKK04:"G3",BKK02:"G4"};
 const TERMINAL_FT = {LCH01:7,LCH02:7,LCH03:7,LCH04:7,LCH05:7,LCH06:7,LCH08:7,LCH09:7,LCH10:7,BKK02:5};
@@ -432,10 +428,10 @@ const $=id=>document.getElementById(id);
 const locSel=$("q-loc");
 ["BKK","UTCT","LCH"].forEach(a=>{
   const g=document.createElement("optgroup"); g.label=a;
-  LOCS.filter(l=>l.area===a).forEach(l=>{ const o=document.createElement("option"); o.value=l.code; o.textContent=`${l.code} — ${l.name}`; g.appendChild(o); });
+  LOCS.filter(l=>l.area===a).forEach(l=>{ const o=document.createElement("option"); o.value=l.code; o.textContent=l.name; g.appendChild(o); });
   locSel.appendChild(g);
 });
-locSel.value="BKK01";
+locSel.value="BKK04";
 
 function quick(){
   const loc=locSel.value, size=document.querySelector("input[name=size]:checked").value;
@@ -457,7 +453,7 @@ function quick(){
     : qty>1 ? `${money(per)} บาท/ตู้ × ${qty} ตู้` : days>0 ? "เกิน free time" : "ยังอยู่ใน free time ไม่มีค่าใช้จ่าย";
   const L=LOCS.find(l=>l.code===loc);
   $("r-chips").innerHTML = `<span class="chip acc">${group}</span><span class="chip">${L.area} · ${esc(L.name)}</span><span class="chip">${size}</span>`
-    + (dg?'<span class="chip dg">DG</span>':rf?'<span class="chip rf">RF</span>':'<span class="chip">GP</span>')
+    + (dg?'<span class="chip dg">DG</span>':rf?'<span class="chip rf">RF</span>':`<span class="chip">${esc(cargo)}</span>`)
     + (sft>0?'<span class="chip acc">Special F/T</span>':'')
     + (!sft&&ft===0&&CFS_ZERO_FT_LOCS.includes(loc)?'<span class="chip acc">CFS/CY · F/T 0</span>':'');
   $("r-stay").textContent = valid ? `${stay} วัน` : "–";
@@ -476,19 +472,8 @@ function quick(){
   $("r-brk").innerHTML=html;
 
   // customer
-  const cft=custFt(loc,dg,rf,$("q-svc").value);
+  const cft=custFt(loc,dg,rf,"");
   $("c-ft").textContent=`${cft} วัน`;
-  const allow=dayFromISO($("q-allow").value);
-  if(allow!=null && din!=null){
-    const early=Math.max(allow-din,0), over=Math.max(early-sft,0);
-    const amt=tierCharge(`CUST|${dg?"DG":"GP"}|${size}`,over);
-    $("c-early").textContent=`${over} วัน`;
-    $("c-amt").textContent=money(amt*qty);
-    $("c-note").textContent = over>0 ? `ลูกค้าคืนตู้ก่อนวันที่ให้คืน (${fmtDay(allow)}) ${over} วัน` : "คืนตู้ไม่ก่อนวันที่ให้คืน ไม่มีค่าเก็บลูกค้า";
-  } else {
-    $("c-early").textContent="–"; $("c-amt").textContent="–";
-    $("c-note").textContent="ใส่วันแรกที่ให้คืนตู้ เพื่อคำนวณค่าที่เก็บลูกค้าได้";
-  }
 
   // strip: gate-in options
   $("s-etd").textContent = etd!=null ? fmtDay(etd) : "–";
