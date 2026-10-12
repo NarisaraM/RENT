@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HAL Storage · ไฟล์เรือ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <a class="brand" href="index.html">
+      <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="4" y="22" width="15" height="8" rx="1" fill="#0B3B5E"/><rect x="21" y="22" width="15" height="8" rx="1" fill="#0A6EB4"/>
+        <rect x="12" y="12" width="15" height="8" rx="1" fill="#E2731C"/>
+        <path d="M2 34c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#0A6EB4" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span class="brand-t"><h1>HAL <b>Storage</b> Calculator</h1><p>ค่าฝากตู้ที่ terminal · BKK · UTCT · LCH</p></span>
+    </a>
+    <nav aria-label="หน้า">
+      <a href="index.html">คำนวณด่วน</a>
+      <a href="file.html" aria-current="page">คำนวณจากไฟล์เรือ</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="tariff.html">Tariff</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="page-h"><h2>คำนวณจากไฟล์เรือ</h2><p>อ่านไฟล์ LOAD / BKG / GATE ของเที่ยวเรือ คำนวณรายตู้ แล้ว Export หรือบันทึกเข้า Dashboard</p></div>
+<section id="view-file">
+  <label class="drop" id="drop" for="f-input">
+    <strong>วางไฟล์ของเที่ยวเรือที่นี่ หรือคลิกเพื่อเลือก</strong>
+    <p>ใส่ไฟล์จากระบบครบ 3 ไฟล์ (LOAD, BKG, GATE) เช่น 9-29-SWAL-2608N-LCH-LOAD.xls เลือกพร้อมกันได้ ไม่ต้องเรียงลำดับ ใส่ไฟล์ TEMPLATE ที่กรอกแล้วก็ได้ · ไฟล์ถูกอ่านในเครื่องนี้เท่านั้น ไม่ถูกอัปโหลดไปที่ไหน</p>
+    <input type="file" id="f-input" accept=".xls,.xlsx,.xlsm" multiple hidden>
+  </label>
+  <div class="files" id="f-list"></div>
+  <div id="f-warn"></div>
+  <div id="f-out"></div>
+</section>
+</main>
+
+<script src="assets/core.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/file.js"></script>
+</body>
+</html>

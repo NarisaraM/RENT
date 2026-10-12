@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HAL Storage Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <a class="brand" href="index.html">
+      <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="4" y="22" width="15" height="8" rx="1" fill="#0B3B5E"/><rect x="21" y="22" width="15" height="8" rx="1" fill="#0A6EB4"/>
+        <rect x="12" y="12" width="15" height="8" rx="1" fill="#E2731C"/>
+        <path d="M2 34c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#0A6EB4" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span class="brand-t"><h1>HAL <b>Storage</b> Calculator</h1><p>ค่าฝากตู้ที่ terminal · BKK · UTCT · LCH</p></span>
+    </a>
+    <nav aria-label="หน้า">
+      <a href="index.html" aria-current="page">คำนวณด่วน</a>
+      <a href="file.html">คำนวณจากไฟล์เรือ</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="tariff.html">Tariff</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="page-h"><h2>คำนวณด่วน</h2><p>ค่า storage ที่เก็บลูกค้า ต่อตู้ ตามตาราง Customer ใน COST-RENT</p></div>
+<section id="view-quick" class="qc">
+  <form class="panel" id="qform" autocomplete="off">
+    <div class="field">
+      <label for="q-loc">Terminal (Location)</label>
+      <select id="q-loc"></select>
+    </div>
+    <div class="field">
+      <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">ขนาดตู้</span>
+      <div class="seg" role="radiogroup" aria-label="ขนาดตู้">
+        <input type="radio" name="size" id="q-s20" value="20'" checked><label for="q-s20">20'</label>
+        <input type="radio" name="size" id="q-s40" value="40'"><label for="q-s40">40' / 45'</label>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:500">ประเภทสินค้า</span>
+      <div class="seg g3" role="radiogroup" aria-label="ประเภทสินค้า">
+        <input type="radio" name="cargo" id="q-gp" value="GP" checked><label for="q-gp">GP</label>
+        <input type="radio" name="cargo" id="q-rf" value="RF"><label for="q-rf">RF</label>
+        <input type="radio" name="cargo" id="q-dg" value="DG"><label for="q-dg">DG</label>
+        <input type="radio" name="cargo" id="q-oog" value="OOG"><label for="q-oog">OOG</label>
+        <input type="radio" name="cargo" id="q-tk" value="TK"><label for="q-tk">TK</label>
+        <input type="radio" name="cargo" id="q-flexi" value="FLEXIBAG"><label for="q-flexi">FLEXIBAG</label>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="q-in">วันตู้เข้า (Gate in)</label><input type="date" id="q-in"></div>
+      <div class="field"><label for="q-etd">ETD เรือ</label><input type="date" id="q-etd"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="q-qty">จำนวนตู้</label><input type="number" id="q-qty" min="1" step="1" value="1" inputmode="numeric"></div>
+      <div class="field"><label for="q-sft">Free Time</label><input type="number" id="q-sft" min="0" step="1" placeholder="ไม่มี" inputmode="numeric"></div>
+    </div>
+  </form>
+
+  <div class="result">
+    <article class="panel ticket" aria-live="polite">
+      <div class="ticket-top">
+        <div style="display:grid;gap:6px">
+          <span class="label">ค่า Storage ที่เก็บลูกค้า</span>
+          <div class="big" id="r-total">0<small>THB</small></div>
+          <span class="total-note" id="r-note"></span>
+        </div>
+        <div class="chips" id="r-chips"></div>
+      </div>
+      <div class="timeline">
+        <div><span class="label">อยู่ใน terminal</span><span class="v" id="r-stay">–</span></div>
+        <div><span class="label">Free time ลูกค้า</span><span class="v" id="r-ft">–</span></div>
+        <div><span class="label">วันคิดเงิน</span><span class="v hot" id="r-days">–</span></div>
+        <div><span class="label">ฟรีถึงวันที่</span><span class="v" id="r-freeuntil" style="font-size:16px">–</span></div>
+      </div>
+      <table class="brk"><tbody id="r-brk"></tbody></table>
+    </article>
+
+    <article class="panel strip">
+      <div class="strip-head">
+        <h3 style="font-size:15px">ถ้าตู้เข้าวันอื่น จะเสียเท่าไร</h3>
+        <span class="total-note">ต่อ 1 ตู้ · ETD <span class="mono" id="s-etd"></span></span>
+      </div>
+      <div class="bars" id="s-bars"></div>
+    </article>
+  </div>
+</section>
+</main>
+
+<script src="assets/core.js"></script>
+<script src="assets/quick.js"></script>
+</body>
+</html>
