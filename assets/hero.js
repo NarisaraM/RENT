@@ -58,12 +58,12 @@
   <path d="M0 186H1200" stroke="#fff" stroke-width="2" stroke-dasharray="18 14" opacity=".8"/>
   ${left}${right}${under}
   <!-- top container of the column: hidden while the crane carries it -->
-  <g>${ctr(6, PICK_X, rowTop(2))}<animate attributeName="opacity" values="1;0;1" keyTimes="0;0.10;0.92" dur="10s" calcMode="discrete" repeatCount="indefinite"/></g>
+  <g>${ctr(1, PICK_X, rowTop(2))}<animate attributeName="opacity" values="1;0;1" keyTimes="0;0.10;0.92" dur="10s" calcMode="discrete" repeatCount="indefinite"/></g>
 
   <!-- truck under the crane: waits, receives a box, drives off; an empty one rolls in -->
   <g>
     <g>${truck("#1D8A57")}
-      <g>${ctr(6, -26, 125)}<animate attributeName="opacity" values="0;1;0" keyTimes="0;0.60;0.80" dur="10s" calcMode="discrete" repeatCount="indefinite"/></g>
+      <g>${ctr(1, -26, 125)}<animate attributeName="opacity" values="0;1;0" keyTimes="0;0.60;0.80" dur="10s" calcMode="discrete" repeatCount="indefinite"/></g>
     </g>
     <animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite"
       values="${TRUCK_X} 0;${TRUCK_X} 0;${TRUCK_X + 560} 0;${TRUCK_X - 700} 0;${TRUCK_X - 700} 0;${TRUCK_X} 0" keyTimes="0;0.64;0.80;0.80;0.84;1"/>
@@ -85,7 +85,7 @@
     <line x1="9" y1="39" x2="9" y2="48" stroke="#1B2733" stroke-width="1.4"><animate attributeName="y2" dur="10s" repeatCount="indefinite" keyTimes="${K}" values="48;98;98;48;48;121;121;48;48;48"/></line>
     <g>
       <rect x="-28" y="48" width="56" height="4" rx="1" fill="#F2B23A"/>
-      <g>${ctr(6, -26, 52)}<animate attributeName="opacity" values="0;1;0" keyTimes="0;0.10;0.60" dur="10s" calcMode="discrete" repeatCount="indefinite"/></g>
+      <g>${ctr(1, -26, 52)}<animate attributeName="opacity" values="0;1;0" keyTimes="0;0.10;0.60" dur="10s" calcMode="discrete" repeatCount="indefinite"/></g>
       <animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite" keyTimes="${K}" values="0 0;0 50;0 50;0 0;0 0;0 73;0 73;0 0;0 0;0 0"/>
     </g>
     <animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite" keyTimes="${K}"
