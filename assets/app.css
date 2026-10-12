@@ -1,5 +1,5 @@
 /* Layout: light harbour-office look. White header with a navy deck stripe and container-stack mark, page tabs as links;
-   pages: quick calculator (form + result), vessel files (area tiles over a yard-list table), dashboard, tariff.
+   pages: quick calculator (form + result), vessel files (area tiles over a yard-list table), tariff.
    Single light theme by choice: sea blue for navigation, signal orange for money owed, navy for emphasis. */
 :root{
   color-scheme:light;
@@ -196,7 +196,7 @@ tr.detail .scroll{max-height:420px;overflow:auto}
 .csum .amt small{font-size:13px;color:var(--muted);font-weight:500}
 .csum .miss{color:var(--accent-ink)}
 
-/* full-width pages (vessel files, dashboard): wide tables fit the screen */
+/* full-width page (vessel files): wide tables fit the screen */
 body.wide main, body.wide .head-in{max-width:none}
 body.wide main{padding-inline:clamp(16px,2vw,32px)}
 body.wide header{padding-inline:clamp(16px,2vw,32px)}

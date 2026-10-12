@@ -152,12 +152,11 @@ function renderResults(){
     return `<tr><td>${r0.area}</td><td class="num">${fmtDay(r0.etd)}</td><td>${esc(r0.svc)}</td><td>${esc(r0.vsl)} ${esc(r0.voyNo)}</td><td>${esc(r0.pol)}</td><td>${esc(r0.lwharf)}</td>
       <td class="r num">${s.n}</td><td class="r num">${s.c20}</td><td class="r num">${s.c40}</td><td class="r num">${s.over}</td><td class="r num">${s.days}</td>
       <td class="r num">${money(s.charge)}</td><td class="r num">${money(s.cust)}</td><td class="r num">${money(s.hal)}</td>
-      <td style="display:flex;gap:6px"><button class="btn xbtn" type="button" data-k="${esc(v.key)}" title="${esc(exportName(r0))}">Export</button>
-      <button class="btn sbtn" type="button" data-k="${esc(v.key)}" data-n="${esc(voyName(r0))}">บันทึกเข้า Dashboard</button></td></tr>`; }).join("");
+      <td style="display:flex;gap:6px"><button class="btn xbtn" type="button" data-k="${esc(v.key)}" title="${esc(exportName(r0))}">Export</button></td></tr>`; }).join("");
 
   out.innerHTML = `<div class="areas">${tiles}${grand}</div>
   <div class="section-h"><h2>สรุปตามเที่ยวเรือ</h2>
-    <div class="tools"><span class="total-note" id="x-status" aria-live="polite"></span><button class="btn" type="button" id="s-all">บันทึกทั้งหมดเข้า Dashboard</button><button class="btn primary" type="button" id="x-all">Export ทั้งหมด (.xlsx)</button></div>
+    <div class="tools"><span class="total-note" id="x-status" aria-live="polite"></span><button class="btn primary" type="button" id="x-all">Export ทั้งหมด (.xlsx)</button></div>
   </div>
   <div class="scroll"><table class="grid"><thead><tr><th>พื้นที่</th><th>ETD</th><th>SVC</th><th>VSL / VOY</th><th>POL</th><th>LWharf</th><th class="r">ตู้</th><th class="r">20'</th><th class="r">40'</th><th class="r">เกิน F/T</th><th class="r">วันคิดเงิน</th><th class="r">ค่า Storage</th><th class="r">เก็บลูกค้า</th><th class="r">HAL จ่าย</th><th>ไฟล์</th></tr></thead><tbody>${vt}</tbody></table></div>
   <p class="total-note" style="margin-top:8px">ชื่อไฟล์ Export = ETD_SVC_VSL_VOY_POL_LWharf เช่น <span class="mono">${esc(exportName(voyageSets()[0].rows[0]))}</span></p>
@@ -182,9 +181,6 @@ function renderResults(){
   $("f-ccalc").onclick=()=>{ CUST_CALC=true; renderTable(); };
   out.querySelectorAll(".xbtn").forEach(b=>b.onclick=()=>exportSets(voyageSets().filter(v=>v.key===b.dataset.k)));
   $("x-all").onclick=()=>exportSets(voyageSets());
-  out.querySelectorAll(".sbtn").forEach(b=>b.onclick=()=>saveSets(voyageSets().filter(v=>v.key===b.dataset.k)));
-  if($("s-all")) $("s-all").onclick=()=>saveSets(voyageSets());
-  refreshSaveLabels();
   renderTable();
 }
 
@@ -351,42 +347,3 @@ function copyTable(){
   try{ navigator.clipboard.writeText(text).then(()=>{ btn.textContent="คัดลอกแล้ว"; setTimeout(()=>btn.textContent="คัดลอกตารางไปวาง Excel",1800); }, fallback); }
   catch(e){ fallback(); }
 }
-
-function voyageDoc(set){
-  const r0=set.rows[0], s=agg(set.rows);
-  return {
-    meta:{name:voyName(r0), etd:r0.etd!=null?isoDay(r0.etd):null, svc:r0.svc||"", vsl:r0.vsl||"", voy:r0.voyNo||"",
-      pol:r0.pol||"", lwharf:r0.lwharf||"", area:r0.area, group:r0.group,
-      terminal:[...new Set(set.rows.map(r=>LOC_NAME(r.loc)))].join(" / "),
-      sources:[...new Set(set.rows.map(r=>r.file))], savedAt:new Date().toISOString(), via:"app"},
-    sum:{n:s.n,c20:s.c20,c40:s.c40,dg:set.rows.filter(r=>r.dg).length,rf:set.rows.filter(r=>r.rf).length,
-      over:s.over,days:s.days,charge:s.charge,cust:s.cust,collect:set.rows.reduce((t,r)=>t+r.collect,0),hal:s.hal},
-    rows:set.rows.map(r=>({cntr:r.cntr,bkno:r.bkno||"",shipper:r.shipper||"",tpsz:r.tpsz,loc:r.loc||"",dg:!!r.dg,rf:!!r.rf,
-      din:r.din!=null?isoDay(r.din):null,stay:r.stay,ft:r.ft,days:r.days,charge:r.charge,cust:r.custAmt}))
-  };
-}
-
-async function saveSets(sets){
-  const st=$("x-status"); if(!sets.length) return;
-  let ok=0;
-  for(const set of sets){
-    const d=voyageDoc(set);
-    try{ await Store.save(docId(d.meta.name),d); ok++; }
-    catch(e){
-      if(e&&e.code==="invalid_argument"){ st.textContent="บัญชีนี้ดูได้อย่างเดียว บันทึกเข้า Dashboard ไม่ได้"; refreshSaveLabels(); return; }
-      if(e&&e.code==="quota_exceeded"){ st.textContent="ฐานข้อมูลเต็ม ลบเที่ยวเรือเก่าในหน้า Dashboard ก่อน"; return; }
-      st.textContent = Store.mode==="local" ? "เบราว์เซอร์นี้บันทึกข้อมูลไม่ได้ (อาจเปิดแบบส่วนตัวหรือพื้นที่เต็ม)" : `บันทึก ${d.meta.name} ไม่สำเร็จ ลองอีกครั้ง`; return;
-    }
-  }
-  st.innerHTML = (ok===1 ? "บันทึกเข้า Dashboard แล้ว" : `บันทึกเข้า Dashboard แล้ว ${ok} เที่ยว`) + ' · <a href="dashboard.html">เปิด Dashboard</a>';
-  refreshSaveLabels();
-}
-function refreshSaveLabels(){
-  document.querySelectorAll(".sbtn").forEach(b=>{
-    b.hidden=!Store.canWrite;
-    b.textContent = Store.docs.some(v=>v.meta&&v.meta.name===b.dataset.n) ? "อัปเดตใน Dashboard" : "บันทึกเข้า Dashboard";
-  });
-  const all=$("s-all"); if(all) all.hidden=!Store.canWrite;
-}
-Store.onChange(refreshSaveLabels);
-
