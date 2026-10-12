@@ -20,18 +20,30 @@ h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--sea);outline-offset:2px}
 
-header{background:var(--surface);color:var(--ink);padding-inline:16px;border-top:4px solid var(--head);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(11,59,94,.04)}
-.head-in{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding-top:16px}
-.brand{display:flex;gap:12px;align-items:center;padding-bottom:14px;color:inherit;text-decoration:none}
-.brand .mark{flex:none;width:40px;height:40px}
-.brand-t{display:flex;flex-direction:column;gap:1px}
-.brand h1{font-size:21px;font-weight:700;letter-spacing:.01em;color:var(--head)}
-.brand h1 b{color:var(--sea)}
-.brand p{margin:0;color:var(--muted);font-size:13px}
-nav{display:flex;gap:2px;flex-wrap:wrap}
-nav a{display:block;border-bottom:3px solid transparent;color:var(--muted);padding:10px 14px 11px;font-weight:500;text-decoration:none;white-space:nowrap}
-nav a:hover{color:var(--head)}
-nav a[aria-current="page"]{color:var(--head);font-weight:600;border-bottom-color:var(--sea)}
+/* hero header: sky card with title, HEUNG A LINE brand + clock, animated container yard; page tabs underneath */
+.hero{max-width:1180px;margin:0 auto;padding:16px 16px 0}
+.hero-card{position:relative;border-radius:18px;overflow:hidden;border:1px solid #CFE0EE;
+  background:linear-gradient(180deg,#BFDDF7 0%,#DCEDFB 45%,#EEF6FD 100%);box-shadow:0 6px 24px rgba(11,59,94,.08)}
+.hero-top{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px 24px;padding:22px 26px 0}
+.hero-copy{display:grid;gap:8px;min-width:0;max-width:62ch}
+.hero-pill{display:inline-flex;align-items:center;gap:6px;width:fit-content;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.85);color:var(--sea);font-weight:600;font-size:13px;box-shadow:0 1px 3px rgba(11,59,94,.08)}
+.hero h1{font-family:var(--f-display);font-size:clamp(26px,3.4vw,40px);font-weight:700;color:var(--head);letter-spacing:.005em;line-height:1.1}
+.hero-copy p{margin:0;color:#3D5A73;font-size:15px}
+.hero-brand{display:grid;gap:10px;justify-items:center;padding:14px 18px;border-radius:16px;background:rgba(255,255,255,.9);box-shadow:0 2px 10px rgba(11,59,94,.10)}
+.brand-row{display:flex;align-items:center;gap:10px}
+.hal-badge{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#C8312B 0 50%,#1C5DA8 50% 100%);color:#fff;font-family:var(--f-display);font-weight:700;font-size:13px;letter-spacing:.04em;box-shadow:inset 0 0 0 2px #fff,0 0 0 1px #1C5DA8}
+.brand-name{display:grid;line-height:1.1}
+.brand-name b{font-family:var(--f-display);font-size:22px;font-weight:700;color:#1C5DA8;letter-spacing:.02em}
+.brand-name small{font-size:11.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.hero-clock{font-family:var(--f-mono);font-size:13px;font-weight:600;color:var(--head);background:var(--sea-soft);padding:5px 12px;border-radius:999px;font-variant-numeric:tabular-nums}
+.hero-scene{height:clamp(150px,16vw,210px);margin-top:-18px}
+.hero-scene svg{display:block}
+.hero nav{display:flex;gap:2px;flex-wrap:wrap;padding:6px 4px 0;border-bottom:1px solid var(--line)}
+.hero nav a{display:block;border-bottom:3px solid transparent;color:var(--muted);padding:10px 14px 11px;font-weight:500;text-decoration:none;white-space:nowrap}
+.hero nav a:hover{color:var(--head)}
+.hero nav a[aria-current="page"]{color:var(--head);font-weight:600;border-bottom-color:var(--sea)}
+.hero-clock{white-space:nowrap}
+@media (max-width:640px){.hero-clock{font-size:11.5px;padding:4px 10px}.hero-top{padding:16px 16px 0}.hero-brand{justify-items:start;width:100%}.brand-name b{font-size:18px}}
 .page-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;margin-bottom:18px}
 .page-h h2{font-size:22px;color:var(--head)}
 .page-h p{margin:0;color:var(--muted);font-size:13.5px;max-width:70ch}
@@ -197,9 +209,9 @@ tr.detail .scroll{max-height:420px;overflow:auto}
 .csum .miss{color:var(--accent-ink)}
 
 /* full-width page (vessel files): wide tables fit the screen */
-body.wide main, body.wide .head-in{max-width:none}
+body.wide main, body.wide .hero{max-width:none}
 body.wide main{padding-inline:clamp(16px,2vw,32px)}
-body.wide header{padding-inline:clamp(16px,2vw,32px)}
+body.wide .hero{padding-inline:clamp(16px,2vw,32px)}
 body.wide .grid th, body.wide .grid td{padding-inline:7px}
 body.wide .grid td.shp{max-width:220px}
 .grid input.ftin{width:56px;min-width:56px}
