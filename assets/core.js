@@ -58,7 +58,12 @@ const CUST_RATES = {
 };
 const ELECTRIC_RF = {"20'":1000,"40'":1200};   // COST ELECTRIC CHARGE ต่อวันคิดเงิน เฉพาะตู้ RF
 const custKey = (cargo,size) => `${cargo==="DG"?"DG":"GP"}|${size}`;
-const custFtOf = cargo => (cargo==="DG"||cargo==="RF") ? 3 : 5;
+const PAT_LOCS = ["BKK01","BKK04"];   // PAT Terminal 1 / 2
+// customer free time (container return): GP-type 5 days, DG 3, RF 3 (4 at PAT)
+const custFtOf = (cargo,loc) => cargo==="RF" ? (PAT_LOCS.includes(loc)?4:3) : cargo==="DG" ? 3 : 5;
+// RF electric charge starts after 3 days everywhere, even at PAT where the return free time is 4 days
+const ELECTRIC_FT = 3;
+const electricDays = (stay,elecFt=ELECTRIC_FT) => stay==null ? 0 : Math.max(stay-elecFt,0);
 function custBreakdown(key, days){
   const ts=CUST_RATES[key], out=[];
   ts.forEach((t,i)=>{

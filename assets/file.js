@@ -85,7 +85,7 @@ function recompute(){
       const key=`${s.name}|${cntr}`;
       const row={key,file:s.name,cntr,loc,area:areaOf(loc),group:groupOf(loc),bkno,shipper:b[26]||r[22]||"",tpsz,size,dg,rf,
         vessel:r[2],voy:r[3],svc,etd,din,stay:(etd!=null&&din!=null)?etd-din+1:null,
-        ftDefault,ftNote,ftOverride:OVERRIDES.has(key)?OVERRIDES.get(key):null,custFt:custFtOf(dg?"DG":rf?"RF":"GP"),custEtdFile:toDay(b[100]),custEtd:CUST_ETD_OVR.has(key)?CUST_ETD_OVR.get(key):toDay(b[100]),
+        ftDefault,ftNote,ftOverride:OVERRIDES.has(key)?OVERRIDES.get(key):null,custFt:custFtOf(dg?"DG":rf?"RF":"GP",loc),custEtdFile:toDay(b[100]),custEtd:CUST_ETD_OVR.has(key)?CUST_ETD_OVR.get(key):toDay(b[100]),
         custAmt:tierCharge(`CUST|${dg?"DG":"GP"}|${size}`,over),collect:m.collect||0,
         vsl:b[12]||r[2]||"",voyNo:b[13]||r[3]||"",pol:b[14]||r[7]||"",lwharf:b[15]||r[27]||loc||"",
         orig:toDay(m.orig),allow,over,spft:m.spft||0,tml:m.tml||"",_r:r,_b:b,_g:g||null};
@@ -101,7 +101,9 @@ function calcRow(r){
   // ฝั่งลูกค้า: นับวันถึง CUST ETD แทน ETD เรือ คิดตามตาราง Customer ใน COST-RENT (+ Electric charge ถ้าเป็น RF)
   r.cStay = (r.custEtd!=null&&r.din!=null) ? r.custEtd-r.din+1 : null;
   r.cDays = r.cStay==null ? 0 : Math.max(r.cStay-r.custFt,0);
-  r.cCharge = custCharge(custKey(r.dg?"DG":"GP",r.size), r.cDays) + (r.rf ? r.cDays*ELECTRIC_RF[r.size] : 0);
+  // RF electric charge starts after 3 days even at PAT (return free time 4 days there)
+  r.cElecDays = r.rf ? electricDays(r.cStay) : 0;
+  r.cCharge = custCharge(custKey(r.dg?"DG":"GP",r.size), r.cDays) + r.cElecDays*(r.rf?ELECTRIC_RF[r.size]:0);
 }
 
 async function addFiles(list){
@@ -285,7 +287,7 @@ function buildWorkbook(set){
     return [r.cntr,r.group,r.loc,r.bkno,b[26]??"",b[27]??"",b[4]??"",b[14]??"",b[18]??"",b[25]??"",r.tpsz,b[84]??"",r.dg?"DG":"",r.rf?"RF":"",
       r.vessel,r.voy,r.svc??"",r.size,serial(r.orig),serial(r.etd),(r.orig!=null&&r.etd!=null)?r.etd-r.orig:null,serial(r.allow),serial(r.din),r.stay,r.ft,
       r.days,r.charge,r.spft||null,r.tml||null,r.custFt,(r.allow!=null&&r.etd!=null)?r.etd-r.allow+1:null,hasC(r)?r.cDays:null,
-      hasC(r)?r.cCharge:null,r.collect||null,r.charge-r.collect,[r.ftOverride!=null?`F/T edited in app (was ${r.ftDefault})`:r.ftNote, hasC(r)?null:"No CUST ETD"].filter(Boolean).join(" · ")||null,b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
+      hasC(r)?r.cCharge:null,r.collect||null,r.charge-r.collect,[r.ftOverride!=null?`F/T edited in app (was ${r.ftDefault})`:r.ftNote, hasC(r)?null:"No CUST ETD", hasC(r)&&r.cElecDays?`Electric ${r.cElecDays} day${r.cElecDays>1?"s":""}`:null].filter(Boolean).join(" · ")||null,b[39]??"",serial(r.custEtd),b[62]??"",b[51]??"",b[102]??""]; });
   const tot=["TOTAL",`${s.n} containers`]; tot[25]=s.days; tot[26]=s.charge; tot[31]=custDays; tot[32]=custTotal; tot[34]=s.hal;
   const ws2=XLSX.utils.aoa_to_sheet([CS_HEAD,...data,tot]);
   const dateCols=[18,19,21,22,37], moneyCols=[26,32,33,34];
