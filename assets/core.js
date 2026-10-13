@@ -59,7 +59,8 @@ const ELECTRIC_RF = {"20'":1000,"40'":1200};   // COST ELECTRIC CHARGE ต่อ
 const custKey = (cargo,size) => `${cargo==="DG"?"DG":"GP"}|${size}`;
 const PAT_LOCS = ["BKK01","BKK04"];   // PAT Terminal 1 / 2
 // customer free time (container return): GP-type 5 days, DG 3, RF 3 (4 at PAT)
-const custFtOf = (cargo,loc) => cargo==="RF" ? (PAT_LOCS.includes(loc)?4:3) : cargo==="DG" ? 3 : 5;
+// PAT + CGO TERM CFS/CY (stuffed inside the terminal): no free time at all
+const custFtOf = (cargo,loc,cgo) => (PAT_LOCS.includes(loc)&&isCfsCy(cgo)) ? 0 : cargo==="RF" ? (PAT_LOCS.includes(loc)?4:3) : cargo==="DG" ? 3 : 5;
 // RF electric charge starts after 3 days everywhere, even at PAT where the return free time is 4 days
 const ELECTRIC_FT = 3;
 const electricDays = (stay,elecFt=ELECTRIC_FT) => stay==null ? 0 : Math.max(stay-elecFt,0);

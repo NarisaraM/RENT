@@ -85,7 +85,7 @@ function recompute(){
       const key=`${s.name}|${cntr}`;
       const row={key,file:s.name,cntr,loc,area:areaOf(loc),group:groupOf(loc),bkno,shipper:b[26]||r[22]||"",tpsz,size,dg,rf,
         vessel:r[2],voy:r[3],svc,etd,din,stay:(etd!=null&&din!=null)?etd-din+1:null,
-        ftDefault,ftNote,ftOverride:OVERRIDES.has(key)?OVERRIDES.get(key):null,custFt:custFtOf(dg?"DG":rf?"RF":"GP",loc),custEtdFile:toDay(b[100]),custEtd:CUST_ETD_OVR.has(key)?CUST_ETD_OVR.get(key):toDay(b[100]),
+        ftDefault,ftNote,ftOverride:OVERRIDES.has(key)?OVERRIDES.get(key):null,custFt:custFtOf(dg?"DG":rf?"RF":"GP",loc,b[84]),custEtdFile:toDay(b[100]),custEtd:CUST_ETD_OVR.has(key)?CUST_ETD_OVR.get(key):toDay(b[100]),
         custAmt:tierCharge(`CUST|${dg?"DG":"GP"}|${size}`,over),collect:m.collect||0,
         vsl:b[12]||r[2]||"",voyNo:b[13]||r[3]||"",pol:b[14]||r[7]||"",lwharf:b[15]||r[27]||loc||"",
         orig:toDay(m.orig),allow,over,spft:m.spft||0,tml:m.tml||"",_r:r,_b:b,_g:g||null};

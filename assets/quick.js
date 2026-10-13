@@ -29,7 +29,7 @@ function quick(){
   plate(size,cargo);
   const din=dayFromISO($("q-in").value), etd=dayFromISO($("q-etd").value);
   const qty=Math.max(1, parseInt($("q-qty").value)||1);
-  const ftIn=$("q-sft").value.trim(), ftDef=custFtOf(cargo,loc);
+  const ftIn=$("q-sft").value.trim(), cgo=$("q-cgo").value, ftDef=custFtOf(cargo,loc,cgo);
   $("q-sft").placeholder = `Default ${ftDef} days`;
   const ftSet = ftIn!=="" && Number(ftIn)>=0;
   const ft = ftSet ? parseInt(ftIn)||0 : ftDef;
@@ -47,7 +47,7 @@ function quick(){
   const L=LOCS.find(l=>l.code===loc);
   $("r-chips").innerHTML = `<span class="chip">${L.area} · ${esc(L.name)}</span><span class="chip">${size}</span>`
     + (dg?'<span class="chip dg">DG</span>':rf?'<span class="chip rf">RF</span>':`<span class="chip">${esc(cargo)}</span>`)
-    + (ftSet?'<span class="chip acc">Free Time entered</span>':'');
+    + (ftSet?'<span class="chip acc">Free Time entered</span>':!ftDef&&PAT_LOCS.includes(loc)?'<span class="chip acc">CFS/CY · F/T 0</span>':'');
   $("r-stay").textContent = valid ? `${stay} days` : "–";
   $("r-ft").textContent = `${ft} days`;
   $("r-days").textContent = valid ? `${days} days` : "–";
