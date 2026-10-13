@@ -44,9 +44,10 @@ const GROUP_INFO = {
 
 const groupOf = loc => GROUP_OF_LOC[loc] || "G2";
 const areaOf = loc => !loc ? "OTHER" : loc==="BKK02" ? "UTCT" : loc.startsWith("BKK") ? "BKK" : loc.startsWith("LCH") ? "LCH" : "OTHER";
+const PAT_CFS_FT = 1;   // PAT + CGO TERM CFS/CY (stuffed inside the terminal): 1 day free time
 const CFS_ZERO_FT_LOCS = ["BKK01","BKK04"];   // PAT: CGO TERM CFS/CY (stuffing ใน terminal) ไม่มี free time
 const isCfsCy = cgo => String(cgo??"").replace(/\s/g,"").toUpperCase()==="CFS/CY";
-const ftTerminal = (loc,dg,cgo) => (CFS_ZERO_FT_LOCS.includes(loc)&&isCfsCy(cgo)) ? 0 : dg ? 1 : (TERMINAL_FT[loc] ?? 3);
+const ftTerminal = (loc,dg,cgo) => (CFS_ZERO_FT_LOCS.includes(loc)&&isCfsCy(cgo)) ? PAT_CFS_FT : dg ? 1 : (TERMINAL_FT[loc] ?? 3);
 const custFt = (loc,dg,rf,svc) => (dg||rf?3:5) + ((loc||"").startsWith("BKK")&&rf&&svc==="KTS"?1:0) + (svc==="KHS"?1:0);
 
 /* ------------------------------------------------------------------ ค่าฝั่งลูกค้า (ชีท Charge ใน COST-RENT.xlsx) */
@@ -59,8 +60,8 @@ const ELECTRIC_RF = {"20'":1000,"40'":1200};   // COST ELECTRIC CHARGE ต่อ
 const custKey = (cargo,size) => `${cargo==="DG"?"DG":"GP"}|${size}`;
 const PAT_LOCS = ["BKK01","BKK04"];   // PAT Terminal 1 / 2
 // customer free time (container return): GP-type 5 days, DG 3, RF 3 (4 at PAT)
-// PAT + CGO TERM CFS/CY (stuffed inside the terminal): no free time at all
-const custFtOf = (cargo,loc,cgo) => (PAT_LOCS.includes(loc)&&isCfsCy(cgo)) ? 0 : cargo==="RF" ? (PAT_LOCS.includes(loc)?4:3) : cargo==="DG" ? 3 : 5;
+// PAT + CGO TERM CFS/CY: only PAT_CFS_FT day(s) of free time, whatever the cargo
+const custFtOf = (cargo,loc,cgo) => (PAT_LOCS.includes(loc)&&isCfsCy(cgo)) ? PAT_CFS_FT : cargo==="RF" ? (PAT_LOCS.includes(loc)?4:3) : cargo==="DG" ? 3 : 5;
 // RF electric charge starts after 3 days everywhere, even at PAT where the return free time is 4 days
 const ELECTRIC_FT = 3;
 const electricDays = (stay,elecFt=ELECTRIC_FT) => stay==null ? 0 : Math.max(stay-elecFt,0);

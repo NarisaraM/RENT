@@ -47,7 +47,7 @@ function quick(){
   const L=LOCS.find(l=>l.code===loc);
   $("r-chips").innerHTML = `<span class="chip">${L.area} · ${esc(L.name)}</span><span class="chip">${size}</span>`
     + (dg?'<span class="chip dg">DG</span>':rf?'<span class="chip rf">RF</span>':`<span class="chip">${esc(cargo)}</span>`)
-    + (ftSet?'<span class="chip acc">Free Time entered</span>':!ftDef&&PAT_LOCS.includes(loc)?'<span class="chip acc">CFS/CY · F/T 0</span>':'');
+    + (ftSet?'<span class="chip acc">Free Time entered</span>':isCfsCy(cgo)&&PAT_LOCS.includes(loc)?`<span class="chip acc">CFS/CY · F/T ${PAT_CFS_FT}</span>`:'');
   $("r-stay").textContent = valid ? `${stay} days` : "–";
   $("r-ft").textContent = `${ft} days`;
   $("r-days").textContent = valid ? `${days} days` : "–";

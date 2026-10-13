@@ -77,7 +77,7 @@ function recompute(){
       const dg=![null,undefined,"",0,"0"].includes(b[42]), rf=tpsz.endsWith("RE");
       const size=tpsz.startsWith("22")?"20'":"40'", svc=b[11];
       const etd=toDay(r[1]), din=g?toDay(g[3]):null;
-      let ftDefault=ftTerminal(loc,dg,b[84]), ftNote=(ftDefault===0&&CFS_ZERO_FT_LOCS.includes(loc))?"CFS/CY at PAT: F/T 0 days":"";
+      let ftDefault=ftTerminal(loc,dg,b[84]), ftNote=(CFS_ZERO_FT_LOCS.includes(loc)&&isCfsCy(b[84]))?`CFS/CY at PAT: F/T ${PAT_CFS_FT} day`:"";
       if(m.ftOverride!=null&&m.ftOverride!==ftDefault){ WARNINGS.push(`${cntr}: using F/T = ${m.ftOverride} days entered in the CS sheet (rule gives ${ftDefault} days)`); ftDefault=m.ftOverride; ftNote="Entered in CS sheet"; }
       if(m.tml&&m.tml.toUpperCase()==="TML"&&m.spft>0){ ftDefault=m.spft; ftNote="Special F/T (TML)"; }
       const allow=toDay(m.allow);
