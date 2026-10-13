@@ -29,8 +29,7 @@ const LOCS = [
   {code:"LCH02",name:"Hutchison A2",area:"LCH"},
   {code:"LCH03",name:"TIPS B4",area:"LCH"},
   {code:"LCH04",name:"LCMT A0/B1",area:"LCH"},
-  {code:"LCH05",name:"LCIT B5",area:"LCH"},
-  {code:"LCH10",name:"LCIT C3",area:"LCH"},
+  {code:"LCH05",name:"LCIT B5/C3",area:"LCH"},   // B5 (LCH05) and C3 (LCH10) share the same rates; vessel files still read both codes
   {code:"LCH06",name:"Hutchison A3",area:"LCH"},
   {code:"LCH08",name:"Hutchison C1C2",area:"LCH"},
   {code:"LCH09",name:"Hutchison D1",area:"LCH"},
