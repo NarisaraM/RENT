@@ -301,3 +301,14 @@ form.ctr .ctr-band{margin:0 -18px 2px;padding:16px 64px 14px 20px;border-radius:
 /* keep form fields inside the container box on narrow screens */
 .qc .row2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .qc input,.qc select{min-width:0;max-width:100%}
+
+/* billing email drafts */
+.mail{margin:6px 0 18px}
+.mail .mnote{margin:0 0 10px;max-width:90ch}
+.mail .miss{color:var(--accent-ink)}
+.mailt td{vertical-align:middle}
+.mailt input{width:100%;min-width:200px;min-height:30px;padding:3px 8px;background:var(--sunken);border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12.5px}
+.mailt input.miss{border-color:var(--accent);border-style:dashed}
+.mact{display:flex;gap:6px;flex-wrap:wrap}
+.mprev{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;overflow:auto;color:#000}
+.mprev-h{font-size:13px;color:var(--muted);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line);word-break:break-word}

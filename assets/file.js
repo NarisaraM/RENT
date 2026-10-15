@@ -6,6 +6,7 @@ let ROWS=[], WARNINGS=[];
 const OVERRIDES=new Map(); // `${file}|${cntr}` -> F/T ที่แก้ในตาราง
 const CUST_ETD_OVR=new Map(); // `${file}|${cntr}` -> CUST ETD (day number) ที่แก้ในตาราง
 let CUST_CALC=false;          // กดปุ่มคำนวณค่า Storage ลูกค้าแล้ว
+let MAIL_ON=false;            // billing-email drafts panel is open (see mail.js)
 let AREA_FILTER="ALL", ONLY_PAID=false, QUERY="";
 let BKG_HEAD=[], GATE_HEAD=[];  // header rows kept for export
 const KIND_LABEL={LOAD:"Loading",BKG:"Booking",GATE:"Gate move",TEMPLATE:"Template"};
@@ -132,7 +133,7 @@ function renderFiles(){
   $("f-list").innerHTML = SOURCES.length ? slots + SOURCES.map((s,i)=>`<span class="chip ${s.error?"dg":"ok"}" title="${esc(s.error||"")}"><b>${s.kind||"?"}</b> ${esc(s.name)}${s.info?" · "+esc(s.info):""}<button type="button" class="x" data-i="${i}" aria-label="Remove ${esc(s.name)}">×</button></span>`).join("")
     + `<button class="btn" id="f-clear" type="button">Clear all</button>` : "";
   $("f-list").querySelectorAll(".x").forEach(b=>b.onclick=()=>{ SOURCES.splice(+b.dataset.i,1); renderFiles(); });
-  if($("f-clear")) $("f-clear").onclick=()=>{SOURCES=[];OVERRIDES.clear();CUST_ETD_OVR.clear();CUST_CALC=false;renderFiles();};
+  if($("f-clear")) $("f-clear").onclick=()=>{SOURCES=[];OVERRIDES.clear();CUST_ETD_OVR.clear();CUST_CALC=false;MAIL_ON=false;renderFiles();};
   const w=SOURCES.filter(s=>s.error).map(s=>`${s.name} — ${s.error}`).concat(WARNINGS);
   $("f-warn").innerHTML = w.length ? `<div class="warns"><strong>Please check</strong>${w.map(x=>`<span>${esc(x)}</span>`).join("")}</div>` : "";
   renderResults();
@@ -168,10 +169,12 @@ function renderResults(){
       <label class="check"><input type="checkbox" id="f-paid" ${ONLY_PAID?"checked":""}> Charged only</label>
       <input type="search" id="f-q" placeholder="Search container / booking / shipper" value="${esc(QUERY)}">
       <button class="btn primary" type="button" id="f-ccalc">Calculate customer storage (by CUST ETD)</button>
+      <button class="btn primary" type="button" id="f-mailbtn">Draft billing emails</button>
       <button class="btn" type="button" id="f-copy">Copy table for Excel</button>
     </div>
   </div>
   <div id="f-csum" class="csum" aria-live="polite" hidden></div>
+  <div id="f-mail" class="mail" hidden></div>
   <div id="f-copyfallback"></div>
   <div class="scroll" id="f-tablewrap"></div>
   <p class="total-note" style="margin-top:8px">F/T and CUST ETD can be edited per container to try a calculation (clear the value to go back to the file) · edits are not written back to the files</p>`;
@@ -181,6 +184,7 @@ function renderResults(){
   $("f-q").oninput=e=>{QUERY=e.target.value; renderTable();};
   $("f-copy").onclick=copyTable;
   $("f-ccalc").onclick=()=>{ CUST_CALC=true; renderTable(); };
+  $("f-mailbtn").onclick=()=>{ CUST_CALC=true; MAIL_ON=true; renderTable(); const m=$("f-mail"); if(m) m.scrollIntoView({behavior:"smooth",block:"nearest"}); };
   out.querySelectorAll(".xbtn").forEach(b=>b.onclick=()=>exportSets(voyageSets().filter(v=>v.key===b.dataset.k)));
   $("x-all").onclick=()=>exportSets(voyageSets());
   renderTable();
@@ -203,6 +207,7 @@ function renderCustSummary(){
 function renderTable(){
   const rows=visibleRows(), wrap=$("f-tablewrap"); if(!wrap) return;
   renderCustSummary();
+  if(typeof renderMail==="function") renderMail();
   if(!rows.length){ wrap.innerHTML=`<p class="empty">No containers match the filter</p>`; return; }
   const s=agg(rows), cTotal=rows.reduce((t,r)=>t+r.cCharge,0), cDays=rows.reduce((t,r)=>t+r.cDays,0);
   const iso=n=>n==null?"":isoDay(n);
