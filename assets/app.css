@@ -312,3 +312,4 @@ form.ctr .ctr-band{margin:0 -18px 2px;padding:16px 64px 14px 20px;border-radius:
 .mact{display:flex;gap:6px;flex-wrap:wrap}
 .mprev{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;overflow:auto;color:#000}
 .mprev-h{font-size:13px;color:var(--muted);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line);word-break:break-word}
+.mailt input.mcc{min-width:330px}

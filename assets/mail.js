@@ -3,7 +3,9 @@
 const MAIL_TO = new Map(), MAIL_CC = new Map();   // booking -> text typed into the To / Cc boxes
 let MAIL_DRAFTS = [];
 const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}/g;
-const INTERNAL_DOMAIN = "heungaline.co.th";   // HAL's own addresses go to Cc, customers to To
+const INTERNAL_DOMAIN = "heungaline.co.th";   // HAL addresses found in the booking list are never put in To
+const FIXED_CC = "CSOutbound <CsOutbound@heungaline.co.th>; Sales <Sales@heungaline.co.th>";   // always pre-filled in Cc
+const ccHeader = s => String(s || "").split(/\s*;\s*/).map(x => x.trim()).filter(Boolean).join(", ");
 
 const emailsIn = text => { const seen = new Set(), out = []; for (const e of String(text ?? "").match(EMAIL_RE) || []) { const k = e.toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(e); } } return out; };
 const isInternal = e => e.toLowerCase().endsWith("@" + INTERNAL_DOMAIN);
@@ -52,13 +54,13 @@ function mailDrafts() {
     rows.sort((a, b) => String(a.cntr).localeCompare(String(b.cntr)));
     const r0 = rows[0], found = emailsIn(rows.flatMap(r => r._b || []).join(" ; "));   // booking list row only
     return {key, bkno: r0.bkno || "", shipper: r0.shipper || "", vsl: r0.vsl || "", voy: voyLabel(r0.voyNo), rows,
-      total: rows.reduce((s, r) => s + r.cCharge, 0), to0: found.filter(e => !isInternal(e)), cc0: found.filter(isInternal),
+      total: rows.reduce((s, r) => s + r.cCharge, 0), to0: found.filter(e => !isInternal(e)),
       subject: `COST STORAGE RENT OF VSL : ${r0.vsl || ""} ${voyLabel(r0.voyNo)} // ${r0.shipper || ""} // ${r0.bkno || ""}`};
   });
   return {drafts, noEtd};
 }
 const toOf = d => MAIL_TO.has(d.key) ? MAIL_TO.get(d.key) : d.to0.join(", ");
-const ccOf = d => MAIL_CC.has(d.key) ? MAIL_CC.get(d.key) : d.cc0.join(", ");
+const ccOf = d => MAIL_CC.has(d.key) ? MAIL_CC.get(d.key) : FIXED_CC;
 
 /* ---------------------------------------------------------------- body (HTML, mirrors the usual HAL notice) */
 function mailBodyHtml(d) {
@@ -80,6 +82,34 @@ function mailBodyText(d) {
   return ["DEAR CUSTOMER,", "", "COST STORAGE RENT DETAIL AS BELOW.", "", "Please advise your company name, address, and Tax ID for issue Invoice.", "",
     `TOTAL COST STORAGE RENT = ${money(d.total)} THB ${rateText(d.rows)}`, "",
     ...d.rows.map(r => { const c = rowCells(r); return [c.cntr, c.bk, c.shipper, c.org, c.pol, c.pod, c.type, c.vsl, c.voy, c.orig, c.first, c.ret, c.remarks.join(" / ")].join("\t"); })].join("\n");
+}
+
+/* plain-text version for a mailto: body (used only when the clipboard is blocked); mailto URLs must stay short */
+function mailBodyPlain(d, room) {
+  const head = ["DEAR CUSTOMER,", "", "COST STORAGE RENT DETAIL AS BELOW.", "", "Please advise your company name, address, and Tax ID for issue Invoice.", "", `TOTAL COST STORAGE RENT = ${money(d.total)} THB ${rateText(d.rows)}`, ""];
+  const lines = [...head]; let more = 0;
+  for (const r of d.rows) {
+    const c = rowCells(r), line = `${c.cntr} | ${c.bk} | ${c.type} | ${c.vsl} ${c.voy} | Return Date ${c.ret} | ${c.remarks.join(" / ")}`;
+    if (encodeURIComponent([...lines, line].join("\r\n")).length > room) { more++; continue; }
+    lines.push(line);
+  }
+  if (more) lines.push(`(+${more} more container${more > 1 ? "s" : ""}, see the attached file)`);
+  return lines.join("\r\n");
+}
+// the click handler calls this; tests can replace it
+let MAIL_LAUNCH = url => { const a = document.createElement("a"); a.href = url; document.body.appendChild(a); a.click(); a.remove(); };
+async function openOutlook(d, st) {
+  const to = emailsIn(toOf(d)).join(", "), cc = ccHeader(ccOf(d));
+  let copied = false;
+  try {   // must start inside the click: copy the formatted notice so one Ctrl+V fills the body
+    await navigator.clipboard.write([new ClipboardItem({"text/html": new Blob([mailBodyHtml(d)], {type: "text/html"}), "text/plain": new Blob([mailBodyText(d)], {type: "text/plain"})})]);
+    copied = true;
+  } catch (e) {}
+  let url = `mailto:${to.replace(/,\s*/g, ",")}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(d.subject)}`;
+  if (!copied) url += `&body=${encodeURIComponent(mailBodyPlain(d, 1500 - url.length))}`;
+  MAIL_LAUNCH(url);
+  st.textContent = copied ? "Opening Outlook. Click in the email body and press Ctrl+V to paste the notice"
+    : "Opening Outlook with a plain-text body (the clipboard is blocked here)";
 }
 
 /* ---------------------------------------------------------------- attachment: customer-facing Excel (no internal columns) */
@@ -132,7 +162,7 @@ async function saveBlob(name, blob, st) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000); return true;
 }
 async function saveDraft(d, st) {
-  const to = emailsIn(toOf(d)).join(", "), cc = emailsIn(ccOf(d)).join(", "), f = draftFiles(d);
+  const to = emailsIn(toOf(d)).join(", "), cc = ccHeader(ccOf(d)), f = draftFiles(d);
   const eml = buildEml(d, to, cc, customerXlsx(d), f.xlsx);
   return saveBlob(f.eml, new Blob([eml], {type: "message/rfc822"}), st);
 }
@@ -149,12 +179,12 @@ function renderMail() {
       <td class="r num">${d.rows.length}</td><td class="r num amt">${money(d.total)}</td>
       <td><input class="mto ${emailsIn(toOf(d)).length ? "" : "miss"}" type="text" value="${esc(toOf(d))}" placeholder="No email found in the Booking list" aria-label="To for ${esc(d.bkno)}"></td>
       <td><input class="mcc" type="text" value="${esc(ccOf(d))}" placeholder="Cc" aria-label="Cc for ${esc(d.bkno)}"></td>
-      <td><div class="mact"><button class="btn sm m-prev" type="button">Preview</button><button class="btn sm m-copy" type="button">Copy body</button><button class="btn sm primary m-eml" type="button">Open in Outlook</button></div></td></tr>`).join("");
+      <td><div class="mact"><button class="btn sm m-prev" type="button">Preview</button><button class="btn sm m-eml" type="button" title="Saves a draft file with the Excel attached. Open it to get the Outlook draft">Save .eml (with Excel)</button><button class="btn sm primary m-out" type="button">Open in Outlook</button></div></td></tr>`).join("");
   box.innerHTML = `<div class="section-h"><h2>Billing emails</h2>
-      <div class="tools"><span class="total-note" id="m-status" aria-live="polite"></span>${drafts.length ? `<button class="btn primary" type="button" id="m-all">Download all (.eml)</button>` : ""}</div></div>
-    <p class="total-note mnote">One draft per booking, listing only containers with a charge. "Open in Outlook" saves a draft (.eml); open that file and Outlook shows an unsent email with the table and an Excel file attached. Check To / Cc, then press Send in Outlook. Nothing is sent from this page.</p>
+      <div class="tools"><span class="total-note" id="m-status" aria-live="polite"></span>${drafts.length ? `<button class="btn" type="button" id="m-all">Save all (.eml with Excel)</button>` : ""}</div></div>
+    <p class="total-note mnote">One draft per booking, listing only containers with a charge. "Open in Outlook" opens a new email with To, Cc and Subject filled in and copies the formatted notice: click in the body and press Ctrl+V. A web page cannot attach files, so for a draft with the Excel attached use "Save .eml (with Excel)" and open that file. Nothing is sent from this page; press Send in Outlook.</p>
     ${drafts.length ? `<div class="scroll"><table class="grid mailt"><thead><tr><th>Booking</th><th>Shipper</th><th class="r">Cntrs</th><th class="r">Total THB</th><th>To</th><th>Cc</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="total-note" style="margin-top:8px">${noTo ? `<b class="miss">${noTo} draft${noTo > 1 ? "s have" : " has"} no recipient.</b> ` : ""}${noEtd ? `${noEtd} container${noEtd > 1 ? "s have" : " has"} no CUST ETD and ${noEtd > 1 ? "are" : "is"} left out. ` : ""}Addresses are read from the Booking list; HAL (${INTERNAL_DOMAIN}) addresses go to Cc.</p>`
+    <p class="total-note" style="margin-top:8px">${noTo ? `<b class="miss">${noTo} draft${noTo > 1 ? "s have" : " has"} no recipient.</b> ` : ""}${noEtd ? `${noEtd} container${noEtd > 1 ? "s have" : " has"} no CUST ETD and ${noEtd > 1 ? "are" : "is"} left out. ` : ""}To is read from the Booking list (HAL addresses are skipped); Cc is fixed to CSOutbound and Sales.</p>`
     : `<p class="empty">No containers with a customer charge yet.${noEtd ? ` ${noEtd} container${noEtd > 1 ? "s have" : " has"} no CUST ETD; enter the dates in the table.` : ""}</p>`}
     <div id="m-prev"></div>`;
 
@@ -166,17 +196,11 @@ function renderMail() {
       const d = find(tr); st.textContent = "";
       if (await saveDraft(d, st)) st.textContent = `Saved ${draftFiles(d).eml}. Open it to get the Outlook draft`;
     };
+    tr.querySelector(".m-out").onclick = () => { st.textContent = ""; openOutlook(find(tr), st); };
     tr.querySelector(".m-prev").onclick = () => {
       const d = find(tr);
-      $("m-prev").innerHTML = `<div class="mprev"><div class="mprev-h"><b>To:</b> ${esc(emailsIn(toOf(d)).join(", ") || "(none)")}<br><b>Cc:</b> ${esc(emailsIn(ccOf(d)).join(", ") || "(none)")}<br><b>Subject:</b> ${esc(d.subject)}<br><b>Attachment:</b> ${esc(draftFiles(d).xlsx)}</div>${mailBodyHtml(d)}</div>`;
+      $("m-prev").innerHTML = `<div class="mprev"><div class="mprev-h"><b>To:</b> ${esc(emailsIn(toOf(d)).join(", ") || "(none)")}<br><b>Cc:</b> ${esc(ccHeader(ccOf(d)) || "(none)")}<br><b>Subject:</b> ${esc(d.subject)}<br><b>Attachment:</b> ${esc(draftFiles(d).xlsx)}</div>${mailBodyHtml(d)}</div>`;
       $("m-prev").scrollIntoView({behavior: "smooth", block: "nearest"});
-    };
-    tr.querySelector(".m-copy").onclick = async () => {
-      const d = find(tr), html = mailBodyHtml(d);
-      try {
-        await navigator.clipboard.write([new ClipboardItem({"text/html": new Blob([html], {type: "text/html"}), "text/plain": new Blob([mailBodyText(d)], {type: "text/plain"})})]);
-        st.textContent = "Body copied. Paste it into an Outlook email";
-      } catch (e) { st.textContent = "Copy is not available here. Use Open in Outlook instead"; }
     };
   });
   const all = $("m-all");
