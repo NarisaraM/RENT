@@ -98,7 +98,22 @@ function mailBodyPlain(d, room) {
 }
 // the click handler calls this; tests can replace it
 let MAIL_LAUNCH = url => { const a = document.createElement("a"); a.href = url; document.body.appendChild(a); a.click(); a.remove(); };
+/* Outlook classic helper (tools/install-halmail.cmd, installed once per PC): the page saves the draft to Downloads and
+   opens a halmail: link; the helper opens that .eml in Outlook classic (table in the body, Excel attached) and deletes it. */
+const HELPER_KEY = "hal-mail-helper";
+const helperOn = () => { try { return localStorage.getItem(HELPER_KEY) === "1"; } catch (e) { return false; } };
+const setHelper = on => { try { localStorage.setItem(HELPER_KEY, on ? "1" : "0"); } catch (e) {} };
+async function openViaHelper(d, st) {
+  const to = emailsIn(toOf(d)).join(", "), cc = ccHeader(ccOf(d)), f = draftFiles(d), n = new Date(), p2 = x => String(x).padStart(2, "0");
+  const name = f.eml.replace(/\.eml$/, `_${p2(n.getHours())}${p2(n.getMinutes())}${p2(n.getSeconds())}.eml`);
+  const eml = buildEml(d, to, cc, customerXlsx(d), f.xlsx);
+  if (!await saveBlob(name, new Blob([eml], {type: "message/rfc822"}), st)) return false;
+  MAIL_LAUNCH(`halmail:open?f=${name}`);
+  st.textContent = "Opening Outlook classic with the Excel attached. The first time, allow the browser to open the HAL Mail helper";
+  return true;
+}
 async function openOutlook(d, st) {
+  if (helperOn() && await openViaHelper(d, st)) return;
   const to = emailsIn(toOf(d)).join(", "), cc = ccHeader(ccOf(d));
   let copied = false;
   try {   // must start inside the click: copy the formatted notice so one Ctrl+V fills the body
@@ -181,8 +196,8 @@ function renderMail() {
       <td><input class="mcc" type="text" value="${esc(ccOf(d))}" placeholder="Cc" aria-label="Cc for ${esc(d.bkno)}"></td>
       <td><div class="mact"><button class="btn sm m-prev" type="button">Preview</button><button class="btn sm m-eml" type="button" title="Saves a draft file with the Excel attached. Open it to get the Outlook draft">Save .eml (with Excel)</button><button class="btn sm primary m-out" type="button">Open in Outlook</button></div></td></tr>`).join("");
   box.innerHTML = `<div class="section-h"><h2>Billing emails</h2>
-      <div class="tools"><span class="total-note" id="m-status" aria-live="polite"></span>${drafts.length ? `<button class="btn" type="button" id="m-all">Save all (.eml with Excel)</button>` : ""}</div></div>
-    <p class="total-note mnote">One draft per booking, listing only containers with a charge. "Open in Outlook" opens a new email with To, Cc and Subject filled in and copies the formatted notice: click in the body and press Ctrl+V. A web page cannot attach files, so for a draft with the Excel attached use "Save .eml (with Excel)" and open that file. Nothing is sent from this page; press Send in Outlook.</p>
+      <div class="tools"><label class="check" title="Needs tools/install-halmail.cmd to be run once on this PC"><input type="checkbox" id="m-helper" ${helperOn() ? "checked" : ""}> Outlook classic helper</label><span class="total-note" id="m-status" aria-live="polite"></span>${drafts.length ? `<button class="btn" type="button" id="m-all">Save all (.eml with Excel)</button>` : ""}</div></div>
+    <p class="total-note mnote">One draft per booking, listing only containers with a charge. With "Outlook classic helper" ticked (install it once with tools/install-halmail.cmd), "Open in Outlook" opens an Outlook classic draft with To, Cc, the table and the Excel attached. Without it, the button opens your default mail app with To, Cc and Subject filled in and copies the formatted notice: click in the body and press Ctrl+V. Nothing is sent from this page; press Send in Outlook.</p>
     ${drafts.length ? `<div class="scroll"><table class="grid mailt"><thead><tr><th>Booking</th><th>Shipper</th><th class="r">Cntrs</th><th class="r">Total THB</th><th>To</th><th>Cc</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="total-note" style="margin-top:8px">${noTo ? `<b class="miss">${noTo} draft${noTo > 1 ? "s have" : " has"} no recipient.</b> ` : ""}${noEtd ? `${noEtd} container${noEtd > 1 ? "s have" : " has"} no CUST ETD and ${noEtd > 1 ? "are" : "is"} left out. ` : ""}To is read from the Booking list (HAL addresses are skipped); Cc is fixed to CSOutbound and Sales.</p>`
     : `<p class="empty">No containers with a customer charge yet.${noEtd ? ` ${noEtd} container${noEtd > 1 ? "s have" : " has"} no CUST ETD; enter the dates in the table.` : ""}</p>`}
@@ -203,6 +218,7 @@ function renderMail() {
       $("m-prev").scrollIntoView({behavior: "smooth", block: "nearest"});
     };
   });
+  $("m-helper").onchange = e => setHelper(e.target.checked);
   const all = $("m-all");
   if (all) all.onclick = async () => {
     st.textContent = ""; let n = 0;
